@@ -1,0 +1,45 @@
+version: '3.8'  # 指定 Docker Compose 文件格式版本
+services:       # 定义要运行的服务（容器）
+
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0                    # 使用 MySQL 8.0 官方镜像
+    container_name: ticket-mysql        # 容器命名为 ticket-mysql
+    environment:                        # 环境变量配置
+      MYSQL_ROOT_PASSWORD: 12345654321      # 设置 root 用户密码
+      MYSQL_DATABASE: ticket_system     # 创建名为 ticket_system 的数据库
+      MYSQL_USER: ticket                # 创建普通用户 ticket
+      MYSQL_PASSWORD: ticket123         # 设置 ticket 用户密码
+    ports:
+      - "3306:3306"                     # 将容器 3306 端口映射到主机 3306 端口
+    volumes:
+      - mysql_data:/var/lib/mysql       # 挂载数据卷，持久化存储数据库数据
+    command: --default-authentication-plugin=mysql_native_password  # 设置认证方式
+    restart: unless-stopped             # 自动重启策略：除非手动停止，否则总是重启
+
+  # Redis 缓存服务
+  redis:
+    image: redis:7.0-alpine             # 使用 Redis 7.0 Alpine 版（轻量）
+    container_name: ticket-redis        # 容器命名为 ticket-redis
+    ports:
+      - "6379:6379"                     # 将容器 6379 端口映射到主机 6379 端口
+    volumes:
+      - redis_data:/data                # 挂载数据卷，持久化 Redis 数据
+    restart: unless-stopped             # 自动重启策略
+
+  # RabbitMQ 消息队列服务
+  rabbitmq:
+    image: rabbitmq:3.12-management     # 使用带管理界面的 RabbitMQ 镜像
+    container_name: ticket-rabbitmq     # 容器命名为 ticket-rabbitmq
+    environment:                        # 环境变量配置
+      RABBITMQ_DEFAULT_USER: root      # 设置默认用户名
+      RABBITMQ_DEFAULT_PASS: 12345654321      # 设置默认密码
+    ports:
+      - "5672:5672"                     # AMQP 协议端口，用于应用连接
+      - "15672:15672"                   # 管理界面端口，用于 Web 访问
+    restart: unless-stopped             # 自动重启策略
+
+# 定义数据卷（持久化存储）
+volumes:
+  mysql_data:    # MySQL 数据卷
+  redis_data:    # Redis 数据卷
