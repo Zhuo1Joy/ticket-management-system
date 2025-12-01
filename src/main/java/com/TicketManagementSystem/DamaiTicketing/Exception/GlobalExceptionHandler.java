@@ -18,12 +18,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotLoginException.class)
     public Response handleNotLoginException(NotLoginException n) {
         return Response.error(401, NotLoginException.DEFAULT_MESSAGE);
-        // 这里异常返回不够细节 后面来慢慢细分
+        // TODO 这里异常返回不是很细节 后面来慢慢细分
     }
 
-//    @ExceptionHandler(Exception.class) // 捕获所有异常
-//    public Response ex(Exception ex) {
-//        return Response.error(401, "对不起 操作失败 请联系管理员");
-//    }
+    // 运行时异常
+    @ExceptionHandler(RuntimeException.class)
+    public Response handleRuntimeException(RuntimeException r) {
+        return Response.error(401, r.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class) // 捕获所有异常
+    public Response ex(Exception ex) {
+        return Response.error(401, "对不起 操作失败 请联系管理员");
+    }
 
 }

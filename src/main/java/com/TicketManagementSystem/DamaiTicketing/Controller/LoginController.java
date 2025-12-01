@@ -3,10 +3,11 @@ package com.TicketManagementSystem.DamaiTicketing.Controller;
 import com.TicketManagementSystem.DamaiTicketing.Entity.LoginRequest;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
 import com.TicketManagementSystem.DamaiTicketing.Service.LoginService;
-import io.swagger.v3.oas.annotations.Operation;
+/*
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;**/
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +21,10 @@ public class LoginController {
 
     // 登录模块
     // 发送Token
-    @PostMapping("/api/auth/login")
-//    @Operation(
-//            summary = "用户登录 返回Token"      // 接口的简短描述
-//    )
+    @PutMapping("/api/auth/login")
+    @Operation(
+            summary = "用户登录 返回Token"      // 接口的简短描述
+    )
 //    // @ApiResponses 注解：定义这个接口可能返回的各种响应
 //    @ApiResponses({
 //            // @ApiResponse 注解：描述一种具体的响应情况
@@ -46,9 +47,9 @@ public class LoginController {
 
     // 发送邮箱验证码
     @GetMapping("/api/auth/login/{email}")
-//    @Operation(
-//            summary = "发送邮箱验证码"
-//    )
+    @Operation(
+            summary = "发送邮箱验证码"      // 接口的简短描述
+    )
 //    @ApiResponses({
 //            @ApiResponse(
 //                    responseCode = "200",
@@ -70,15 +71,15 @@ public class LoginController {
 
     // 退出登录
     @GetMapping("/api/auth/logout")
-//    @Operation(
-//            summary = "用户退出登录"
-//    )
+    @Operation(
+            summary = "用户退出登录"
+    )
 //    @ApiResponse(
 //            responseCode = "200",
 //            description = "退出登录成功"
 //    )
     public Response logout() {
-        loginService.logout();
+        if(!loginService.logout()) return Response.error(404, "退出登录失败、请检查登录状态");
         return Response.success(200, "退出登录成功");
     }
 

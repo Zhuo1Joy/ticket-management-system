@@ -4,7 +4,6 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.TicketManagementSystem.DamaiTicketing.Entity.LoginRequest;
 import com.TicketManagementSystem.DamaiTicketing.Entity.User;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
-import com.TicketManagementSystem.DamaiTicketing.Manager.UserManager;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.UserMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.micrometer.common.util.StringUtils;
@@ -16,8 +15,6 @@ import java.util.Random;
 @Service
 public class LoginService extends ServiceImpl<UserMapper, User> {
 
-    @Autowired
-    UserManager userManager;
     @Autowired
     VerificationCodeService verificationCodeService;
 
@@ -52,7 +49,9 @@ public class LoginService extends ServiceImpl<UserMapper, User> {
     // 密码登录
     public User loginByPassword(String username, String password) {
 
-        User user = userManager.selectByUsername(username);
+        User user = lambdaQuery()
+                .eq(User::getUsername, username)
+                .one();
 
         // 用户名或密码为空的情况
         // 其实这个优雅的写法是AI给的↓ 这也太优雅了 是我肯定 == null 了
@@ -89,7 +88,9 @@ public class LoginService extends ServiceImpl<UserMapper, User> {
     // 邮箱登录
     public User loginByEmail(String email, String code) {
 
-        User user = userManager.selectByEmail(email);
+        User user = lambdaQuery()
+                .eq(User::getEmail, email)
+                .one();
 
         // 同样先看用户有没有输入邮箱和验证码
         if (StringUtils.isBlank(email) || StringUtils.isBlank(code)) {
@@ -108,6 +109,7 @@ public class LoginService extends ServiceImpl<UserMapper, User> {
         user = new User();
         user.setUsername(email); // 默认用户名为邮箱
         user.setPassword("123456"); // 默认密码为123456
+        user.setEmail(email);
         Random random = new Random();
         user.setNickname("DaMai"+ random.nextInt(1000000)); // 默认昵称随机生成 本来想生成字符串的 发现有点麻烦 于是生成数字hh
 

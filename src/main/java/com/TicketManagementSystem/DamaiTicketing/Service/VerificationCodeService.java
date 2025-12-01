@@ -12,6 +12,7 @@ public class VerificationCodeService {
 
     @Autowired
     RedisTemplate<String, String> redisTemplate;
+    @Autowired
     EmailService emailService;
 
     private static final String CODE_PREFIX = "verification_code:";
@@ -22,8 +23,8 @@ public class VerificationCodeService {
     // 发送邮箱验证码
     public void sendEmailCode(String email) {
 
-        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
-        if (email.matches(emailRegex)) throw new BusinessException(400, "无效的邮箱");
+//        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+//        if (email.matches(emailRegex)) throw new BusinessException(400, "无效的邮箱");
 
         // 检查发送频率
         String rateLimitKey = RATE_LIMIT_PREFIX + email;

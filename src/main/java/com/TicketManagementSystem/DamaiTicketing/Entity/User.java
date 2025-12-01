@@ -24,6 +24,7 @@ public class User {
     private String nickname;
     private String gender;
     private Date birthday;
+    private int status;
     private LocalDateTime createTime;
     private LocalDateTime lastLoginTime;
 
