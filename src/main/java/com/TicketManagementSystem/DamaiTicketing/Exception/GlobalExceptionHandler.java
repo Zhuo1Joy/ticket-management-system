@@ -2,6 +2,7 @@ package com.TicketManagementSystem.DamaiTicketing.Exception;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -27,9 +28,17 @@ public class GlobalExceptionHandler {
         return Response.error(401, r.getMessage());
     }
 
-    @ExceptionHandler(Exception.class) // 捕获所有异常
+    // 校验异常
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Response handleValidationException(MethodArgumentNotValidException e) {
+        // 这里最好不这么写 以后大概不止抢票数量不对的问题 但是现在我先这么写（
+        return Response.error(400, "单个账号一次最多可抢两张票 最少需购一张票");
+    }
+
+    // 捕获所有异常
+    @ExceptionHandler(Exception.class)
     public Response ex(Exception ex) {
-        return Response.error(401, "对不起 操作失败 请联系管理员");
+        return Response.error(401, "对不起 操作失败 请联系管理员", ex.getMessage());
     }
 
 }

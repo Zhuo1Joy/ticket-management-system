@@ -6,6 +6,8 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketOrder;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
+import com.TicketManagementSystem.DamaiTicketing.MQ.GrabTicketMessage;
+import com.TicketManagementSystem.DamaiTicketing.MQ.GrabTicketProducer;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.TicketTierMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 // 抢票
 @Slf4j
@@ -28,19 +32,22 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
     @Autowired
     TicketOrderService ticketOrderService;
     @Autowired
-    RedisTemplate<String, Integer> redisTemplate;
+    GrabTicketProducer grabTicketProducer;
+    @Autowired
+    RedisTemplate<String, Integer> integerRedisTemplate;
+    @Autowired
+    RedisTemplate<String, String> stringRedisTemplate;
 
     private static final String STOCK_KEY_PREFIX = "ticket_stock:";
     private static final String SALE_SWITCH_KEY_PREFIX = "sale_switch:";
+    private static final String GRAB_RESULT = "grab_result:";
 
     @Transactional(rollbackFor = Exception.class)
-    public String grabTicket(GrabTicketRequest grabTicketRequest) {
+    public boolean grabTicket(GrabTicketRequest grabTicketRequest, Long userId) {
 
-        Long userId = StpUtil.getLoginIdAsLong();
         Long tierId = grabTicketRequest.getTierId();
         int quantity = grabTicketRequest.getQuantity();
 
-        // 真会出现这种情况吗 我要拷打管理员了
         TicketTier ticketTier = ticketTierService.getById(tierId);
         if (ticketTier == null) {
             throw new BusinessException(404, "票档不存在");
@@ -56,7 +63,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
 
         // 检测销售开关是否打开
         String switchKey = SALE_SWITCH_KEY_PREFIX + ticketTier.getSessionId();
-        Integer isOnSale = redisTemplate.opsForValue().get(switchKey);
+        Integer isOnSale = integerRedisTemplate.opsForValue().get(switchKey);
         if (isOnSale == null || isOnSale != 1)
             throw new BusinessException(404, "暂未开票 请耐心等待");
 
@@ -65,10 +72,10 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
         boolean redisSuccess = false;
         try {
             // Redis原子扣减
-            Long remainingStock = redisTemplate.opsForValue().decrement(stockKey, quantity);
+            Long remainingStock = integerRedisTemplate.opsForValue().decrement(stockKey, quantity);
             if (remainingStock == null || remainingStock < 0) {
                 // 库存不足->回滚Redis
-                redisTemplate.opsForValue().increment(stockKey, quantity);
+                integerRedisTemplate.opsForValue().increment(stockKey, quantity);
                 throw new BusinessException(401, "库存不足");
             }
 
@@ -76,20 +83,20 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
             log.info("✅ Redis预扣成功，剩余库存: {}", remainingStock);
 
             // 数据库扣减库存
-            boolean dbSuccess = reduceStockInDB(tierId, quantity, currentVersion);
+            boolean dbSuccess = reduceOCCStock(tierId, quantity, currentVersion);
             if (!dbSuccess) {
                 // 乐观锁失败->回滚Redis
-                redisTemplate.opsForValue().increment(stockKey, quantity);
+                integerRedisTemplate.opsForValue().increment(stockKey, quantity);
                 throw new BusinessException(401, "已售空");
             }
 
             // 计算金额并创建预扣订单
             BigDecimal amount = calculateAmount(ticketTier, quantity);
-            TicketOrder ticketOrder = ticketOrderService.createOrder(grabTicketRequest, amount);
+            TicketOrder ticketOrder = ticketOrderService.createOrder(grabTicketRequest, userId, amount);
             String orderNo = ticketOrder.getOrderNo();
 
             log.info("🎉 抢票成功！用户: {}, 订单: {}, 金额: {}", userId, orderNo, amount);
-            return orderNo;
+            return true;
 
         } catch (BusinessException b) {
             // 直接抛出
@@ -99,11 +106,11 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
             // 丢出系统异常
             log.error("💥 抢票异常", e);
             if (redisSuccess) {
-                redisTemplate.opsForValue().increment(stockKey, quantity);
+                integerRedisTemplate.opsForValue().increment(stockKey, quantity);
             }
+            throw e;
 
         }
-        return null;
     }
 
     private boolean validateTicketTier(TicketTier ticketTier, Integer quantity) {
@@ -126,7 +133,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
     }
 
     // 数据库扣减库存（乐观锁）
-    private boolean reduceStockInDB(Long tierId, Integer quantity, Integer version) {
+    private boolean reduceOCCStock(Long tierId, Integer quantity, Integer version) {
 
         boolean result = this.lambdaUpdate()
                 .eq(TicketTier::getId, tierId)
@@ -150,6 +157,50 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
 
         BigDecimal amount = ticketTier.getPrice(); // 差点忘了当时设置的Price就是BigDecimal类型的hh
         return amount.multiply(new BigDecimal(quantity));
+
+    }
+
+    // 新增异步抢票方法
+    public void asyncGrabTicket(GrabTicketRequest grabTicketRequest) {
+
+        GrabTicketMessage grabTicketMessage = convertToMessage(grabTicketRequest);
+        String resultKey = GRAB_RESULT + grabTicketMessage.getRequestId();
+        // 消息处理情况存入Redis
+        stringRedisTemplate.opsForValue().set(resultKey, "Unprocessed", 10, TimeUnit.SECONDS);
+
+        log.info("开始异步抢票: userId={}, ticketId={}", grabTicketMessage.getUserId(), grabTicketMessage.getTicketId());
+
+        try {
+            // 开始抢票
+            grabTicketProducer.sendGrabTicketMessage(grabTicketMessage);
+            stringRedisTemplate.opsForValue().set(resultKey, "Processing", 10, TimeUnit.SECONDS); // 更新Redis
+
+            log.info("发送抢票请求: requestId={}, userId={}, ticketId={}",
+                    grabTicketMessage.getRequestId(), grabTicketMessage.getUserId(), grabTicketMessage.getTicketId());
+        } catch (Exception e) {
+            stringRedisTemplate.opsForValue().set(resultKey, "Processing failed", 10, TimeUnit.SECONDS);
+
+            log.error("异步抢票失败: userId={}, ticketId={}", grabTicketMessage.getUserId(), grabTicketMessage.getTicketId(), e);
+            throw e;
+        }
+    }
+
+    public GrabTicketMessage convertToMessage(GrabTicketRequest grabTicketRequest) {
+
+        // 生成唯一的请求ID
+        String requestId = UUID.randomUUID().toString();
+        Long userId = StpUtil.getLoginIdAsLong();
+
+        GrabTicketMessage grabTicketMessage = new GrabTicketMessage();
+        grabTicketMessage.setRequestId(requestId);
+        grabTicketMessage.setUserId(userId);
+        grabTicketMessage.setTicketId(grabTicketRequest.getTierId());
+        grabTicketMessage.setPerformanceId(grabTicketRequest.getPerformanceId());
+        grabTicketMessage.setSessionId(grabTicketRequest.getSessionId());
+        grabTicketMessage.setTierId(grabTicketRequest.getTierId());
+        grabTicketMessage.setQuantity(grabTicketRequest.getQuantity());
+
+        return grabTicketMessage;
 
     }
 

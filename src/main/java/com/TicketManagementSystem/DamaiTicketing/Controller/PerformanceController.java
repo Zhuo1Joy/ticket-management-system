@@ -2,11 +2,14 @@ package com.TicketManagementSystem.DamaiTicketing.Controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.TicketManagementSystem.DamaiTicketing.Entity.GrabTicketRequest;
+import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
 import com.TicketManagementSystem.DamaiTicketing.Service.PerformanceService;
 import com.TicketManagementSystem.DamaiTicketing.Service.TicketGrabbingService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,8 +28,8 @@ public class PerformanceController {
     @Operation(
             summary = "未登录默认返回北京地区演出"
     )
-    public Response getPerformance() {
-        return Response.success(200, "默认地区：北京", performanceService.getPerformance());
+    public Response getPerformance(@RequestParam(required = false, defaultValue = "1") int pageNum) {
+        return Response.success(200, "默认地区：北京", performanceService.getPerformance(pageNum));
     }
 
     // 根据演出名/明星名查询
@@ -34,8 +37,9 @@ public class PerformanceController {
     @Operation(
             summary = "根据演出名/明星名查询"
     )
-    public Response selectPerformanceByMessage(@PathVariable String keyword) {
-        return Response.success(200, "查询成功", performanceService.selectPerformanceByMessage(keyword));
+    public Response selectPerformanceByMessage(@PathVariable String keyword,
+                                               @RequestParam(required = false, defaultValue = "1") int pageNum) {
+        return Response.success(200, "查询成功", performanceService.selectPerformanceByMessage(keyword, pageNum));
     }
 
     // 按参数查询->城市、分类
@@ -43,8 +47,12 @@ public class PerformanceController {
     @Operation(
             summary = "按参数查询->城市、分类"
     )
-    public Response selectPerformanceByParams(@RequestParam(required = false) String city, @RequestParam(required = false) String category) {
-        return Response.success(200, "查询成功", performanceService.selectPerformanceByParams(city, category));
+    public Response selectPerformanceByParams(@RequestParam(required = false) String city,
+                                              @RequestParam(required = false) String category,
+                                              @RequestParam(required = false, defaultValue = "1") int pageNum) {
+        Page<Performance> page = performanceService.selectPerformanceByParams(city, category, pageNum);
+        if (page.getRecords().isEmpty()) return Response.error(404, "该地区暂无相关演出 敬请期待");
+        return Response.success(200, "查询成功", page);
     }
 
     // 获取演出场次信息
@@ -95,8 +103,9 @@ public class PerformanceController {
     @Operation(
             summary =  "抢票"
     )
-    public Response ticketGrab(@RequestBody GrabTicketRequest grabTicketRequest){
-        return Response.success(200, "抢票成功", ticketGrabbingService.grabTicket(grabTicketRequest));
+    public Response asyncTicketGrab(@RequestBody @Valid GrabTicketRequest grabTicketRequest){
+        ticketGrabbingService.asyncGrabTicket(grabTicketRequest);
+        return Response.success(200, "抢票成功");
     }
 
 }

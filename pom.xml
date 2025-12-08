@@ -52,6 +52,7 @@
 <!--			<version>3.0.5</version>-->
 <!--		</dependency>-->
 
+
 		<!-- 居然忘了加MySQL Driver依赖。 -->
 		<dependency>
 			<groupId>mysql</groupId>
@@ -123,6 +124,25 @@
 			<groupId>com.baomidou</groupId>
 			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
 			<version>3.5.7</version>
+		</dependency>
+
+		<!-- Valid注解依赖 SpringBoot2.3.+版本后需要添加 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- JSON自动序列化 -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
+		<!-- 添加支付宝SDK依赖 -->
+		<dependency>
+			<groupId>com.alipay.sdk</groupId>
+			<artifactId>alipay-sdk-java</artifactId>
+			<version>4.38.10.ALL</version>
 		</dependency>
 	</dependencies>
 

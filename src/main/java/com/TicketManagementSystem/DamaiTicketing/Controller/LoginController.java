@@ -40,7 +40,7 @@ public class LoginController {
     public Response login(@RequestBody LoginRequest loginRequest) {
         String token = loginService.login(loginRequest);
         //if (token != null)
-        return Response.success(200, token);
+        return Response.success(200, "登录成功", token);
         // return Response.error(401, "用户名或密码错误");
         // 为什么我感觉根本不需要这个if 前面在LoginService抛了异常那应该直接结束了 不会再过这里吧
     }

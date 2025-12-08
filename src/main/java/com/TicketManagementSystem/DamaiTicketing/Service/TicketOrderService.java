@@ -8,11 +8,13 @@ import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.PerformanceMapper;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.TicketOrderMapper;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.UserMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -29,19 +31,29 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
     PerformanceMapper performanceMapper;
 
     // 查询订单列表
-    public List<String> getOrderList(String performanceTitle) {
+    public Page<String> getOrderList(String performanceTitle, int pageNum) {
 
-        List<TicketOrder> orders = this.lambdaQuery()
+        int currentPage = Math.max(pageNum, 1);
+        Page<TicketOrder> page = new Page<>(currentPage, 20);
+
+        Page<TicketOrder> orders = this.lambdaQuery()
                 .eq(TicketOrder::getUserId, StpUtil.getLoginIdAsLong())
                 .like(performanceTitle != null, TicketOrder::getOrderName, performanceTitle)
-                .list();
+                .page(page);
 
-        List<String> result = orders.stream()
+        if (orders.getRecords().isEmpty()) throw new BusinessException(404, "没有可查询的订单");
+
+        List<String> result = orders.getRecords()
+                .stream()
                 .map(TicketOrder::getOrderName)
                 .toList();
 
-        if (result.isEmpty()) throw new BusinessException(404, "暂无相关订单");
-        return result;
+        Page<String> pageName = new Page<>(currentPage, 20);
+        pageName.setTotal(orders.getTotal());
+        pageName.setRecords(result);
+
+        if (currentPage > pageName.getPages()) throw new BusinessException(404, "请选择正确的页码");
+        return pageName;
 
     }
 
@@ -59,10 +71,20 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
 
     }
 
-    // 这里的删除订单和删除订单历史记录不是一个东西
-    // 这里做的应该是删除未支付的订单 也就是取消订单这个东西
+    //  取消订单
     // TODO 等以后我再允许你退货 现在不允许 因为我不会写
-    public void deleteOrder(Long id) {
+    public void cancelOrder(Long id, String cancelReason) {
+
+        boolean result = lambdaUpdate()
+                .eq(TicketOrder::getId, id)
+                .eq(TicketOrder::getStatus, 0)
+                .ge(TicketOrder::getExpireTime, LocalDateTime.now())
+                .set(TicketOrder::getStatus, 3)
+                .set(TicketOrder::getCancelTime, LocalDateTime.now())
+                .set(TicketOrder::getCancelReason, cancelReason)
+                .update();
+
+        if (!result) throw new BusinessException(401, "无法取消该订单");
 
         // 票档ID
         Long tierId = lambdaQuery()
@@ -76,14 +98,6 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
                 .one()
                 .getQuantity();
 
-        boolean result = this.lambdaUpdate()
-                .eq(TicketOrder::getUserId, StpUtil.getLoginIdAsLong())
-                .eq(TicketOrder::getId, id)
-                .eq(TicketOrder::getStatus, 0)
-                .remove();
-
-        if (!result) throw new BusinessException(401, "无法删除该订单");
-
         // 对应的我要更新票档的剩余量
         ticketTierService.lambdaUpdate()
                 .eq(TicketTier::getId, tierId)
@@ -92,8 +106,21 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
 
     }
 
+    // 这里做的应该是删除已完成/已过期/已取消的订单
+    public void deleteOrder(Long id) {
+
+        boolean result = this.lambdaUpdate()
+                .eq(TicketOrder::getUserId, StpUtil.getLoginIdAsLong())
+                .eq(TicketOrder::getId, id)
+                .in(TicketOrder::getStatus, 1, 2, 3)
+                .remove();
+
+        if (!result) throw new BusinessException(401, "无法删除该订单");
+
+    }
+
     // 创建新订单
-    public TicketOrder createOrder(GrabTicketRequest grabTicketRequest, BigDecimal amount) {
+    public TicketOrder createOrder(GrabTicketRequest grabTicketRequest, Long userId, BigDecimal amount) {
 
         // 创建订单号 被推荐了时间戳+随机数
         long timestamp = System.currentTimeMillis();
@@ -102,9 +129,9 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
 
         TicketOrder order = new TicketOrder();
         order.setOrderNo("M"+timestamp+randomNum);
-        order.setOrderName(userMapper.selectById(StpUtil.getLoginIdAsLong()).getNickname() + "的"
+        order.setOrderName(userMapper.selectById(userId).getNickname() + "的"
                 + performanceMapper.selectById(grabTicketRequest.getPerformanceId()).getTitle() + "订单");
-        order.setUserId(StpUtil.getLoginIdAsLong());
+        order.setUserId(userId);
         order.setPerformanceId(grabTicketRequest.getPerformanceId());
         order.setSessionId(grabTicketRequest.getSessionId());
         order.setTierId(grabTicketRequest.getTierId());

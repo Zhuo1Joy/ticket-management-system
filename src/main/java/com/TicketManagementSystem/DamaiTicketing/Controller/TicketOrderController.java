@@ -20,8 +20,9 @@ public class TicketOrderController {
     @Operation(
         summary = "分页查询订单列表"
     )
-    public Response getOrderList(@RequestParam(required = false) String performanceTitle) {
-        return Response.success(200, "查询成功", ticketOrderService.getOrderList(performanceTitle));
+    public Response getOrderList(@RequestParam(required = false) String performanceTitle,
+                                 @RequestParam(required = false, defaultValue = "1") int pageNum) {
+        return Response.success(200, "查询成功", ticketOrderService.getOrderList(performanceTitle, pageNum));
     }
 
     @SaCheckLogin
@@ -31,6 +32,17 @@ public class TicketOrderController {
     )
     public Response getOrderDetails(@PathVariable Long orderId) {
         return Response.success(200, "查询成功", ticketOrderService.getOrderDetails(orderId));
+    }
+
+    @SaCheckLogin
+    @DeleteMapping("/api/order/{orderId}/cancel")
+    @Operation(
+            summary = "取消订单"
+    )
+    public Response deleteOrder(@PathVariable Long orderId,
+                                @RequestParam(required = false) String cancelReason) {
+        ticketOrderService.cancelOrder(orderId, cancelReason);
+        return Response.success(200, "取消订单成功");
     }
 
     @SaCheckLogin
