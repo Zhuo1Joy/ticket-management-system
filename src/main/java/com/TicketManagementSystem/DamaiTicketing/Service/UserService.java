@@ -9,6 +9,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class UserService extends ServiceImpl<UserMapper, User> {
@@ -50,5 +52,7 @@ public class UserService extends ServiceImpl<UserMapper, User> {
                 .update();
         if (!result) throw new BusinessException(401, "修改失败");
     }
+
+    // TODO 修改密码（需要额外验证方式）
 
 }

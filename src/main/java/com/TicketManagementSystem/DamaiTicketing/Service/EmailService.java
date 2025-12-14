@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +34,7 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject("您的登录验证码");
 
-            // HTML格式的邮件内容
+            // HTML格式的邮件内容（特别鸣谢AI写的前端）
             String content = String.format(
                     "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
                             "<h2 style=\"color: #1890ff;\">登录验证码</h2>" +
@@ -63,6 +62,34 @@ public class EmailService {
     public String generateVerificationCode() {
         Random random = new Random();
         return String.format("%06d", random.nextInt(1000000));
+    }
+
+    public void sendPaymentSuccessEmail(String toEmail) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("大麦：抢票成功通知");
+            String content = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+                    "<h2 style=\"color: #1890ff;\">恭喜您抢票成功！</h2>" +
+                    "<p>您好！</p>" +
+                    "<p>您所购买的订单已成功支付</p>" +
+                    "<div style=\"text-align: center; margin: 20px 0;\">" +
+                    "<span style=\"font-size: 32px; font-weight: bold; color: #1890ff; letter-spacing: 5px;\">%s</span>" +
+                    "</div>" +
+                    "<p>购票详情请登录大麦官网查看</p>" +
+                    "<p>如非本人操作请忽略此邮件。</p>" +
+                    "</div>";
+
+            helper.setText(content, true);
+            mailSender.send(message);
+            log.info("抢票邮件成功发送至: {}", toEmail);
+
+        } catch (Exception e) {
+            throw new RuntimeException("邮件发送失败", e);
+        }
     }
 
 }

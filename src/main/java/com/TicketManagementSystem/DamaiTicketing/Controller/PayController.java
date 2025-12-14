@@ -1,8 +1,10 @@
 package com.TicketManagementSystem.DamaiTicketing.Controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentResponse;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
+import com.TicketManagementSystem.DamaiTicketing.Service.AlipayService;
 import com.TicketManagementSystem.DamaiTicketing.Service.PaymentRecordService;
 import com.TicketManagementSystem.DamaiTicketing.Service.PayService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,35 +26,57 @@ public class PayController {
     @Autowired
     PaymentRecordService paymentRecordService;
 
+    @Autowired
+    AlipayService alipayService;
+
+
+    @SaCheckLogin
     @GetMapping("/api/payment/alipay/create/{orderId}")
     @Operation(
-            summary = "创建支付订单并获取支付二维码"
+            summary = "创建支付订单并获取支付二维码（网页）"
     )
     public Response createPayment(@PathVariable Long orderId) {
         // 创建支付记录（和二维码）
-        PaymentRecord paymentRecord = payService.createPayment(orderId);
+//        PaymentRecord paymentRecord = payService.createPayment(orderId);
+//
+//        // 获取二维码
+//        String qrCodeUrl = paymentRecord.getQrCodeUrl();
+//
+//        // 我本来想直接返回二维码的 但是AI说前端要看 那好吧我封装一个响应类
+//        PaymentResponse paymentResponse = new PaymentResponse();
+//        paymentResponse.setBusinessOrderNo(paymentRecord.getBusinessOrderNo());
+//        paymentResponse.setQrCodeUrl(qrCodeUrl);
+//        paymentResponse.setAmount(paymentRecord.getAmount());
 
-        // 获取二维码
-        String qrCodeUrl = paymentRecord.getQrCodeUrl();
+        String paymentUrl = payService.createPayment(orderId);
 
-        // 我本来想直接返回二维码的 但是AI说前端要看 那好吧我封装一个响应类
-        PaymentResponse response = new PaymentResponse();
-        response.setOrderNo(paymentRecord.getOrderNo());
-        response.setQrCodeUrl(qrCodeUrl);
-        response.setAmount(paymentRecord.getAmount());
-
-        return Response.success(200, "成功获取支付二维码", response);
+//        return Response.success(200, "成功获取支付二维码", paymentResponse);
+        return Response.success(200, "成功获取支付页面", paymentUrl);
 
     }
 
-    @GetMapping("/api/payment/status/{orderNo}")
+
+    @SaCheckLogin
+    @GetMapping("/api/payment/status/{businessOrderNo}")
     @Operation(
             summary = "查询订单（记录）详情"
     )
-    public Response getPaymentStatus(@PathVariable String orderNo) {
-        return Response.success(200, "返回订单状态成功", paymentRecordService.selectByOrderNo(orderNo));
+    public Response getPaymentRecordDetails(@PathVariable String businessOrderNo) {
+        return Response.success(200, "返回订单状态成功", paymentRecordService.selectByBusinessOrderNo(businessOrderNo));
     }
 
+
+    @SaCheckLogin
+    @GetMapping("/api/payment/alipay/status/{paymentOrderNo}")
+    @Operation(
+            summary = "查询支付宝订单状态"
+    )
+    public Response getAlipayStatus(@PathVariable String paymentOrderNo) {
+        return Response.success(200, "查询支付宝订单状态成功", alipayService.selectAlipayTradeStatus(paymentOrderNo));
+    }
+
+
+    @SaCheckLogin
     @DeleteMapping("/api/payment/cancel/{orderNo}")
     @Operation(
             summary = "取消支付 即取消支付宝支付订单"
@@ -62,28 +86,22 @@ public class PayController {
         return Response.success(200, "取消支付成功");
     }
 
+
     @PostMapping("/api/payment/alipay/notify")
     @Operation(
             summary = "支付宝回调通知"
     )
     public String handleAlipayNotify(@RequestParam Map<String, String> params) {
 
+        log.info("支付宝调取回调方法");
+
         // 验证回调
         boolean isValid = payService.handleAlipayCallback(params);
-
         if (!isValid) {
             log.error("支付宝回调签名验证失败");
             return "failure";
         }
-
-        String tradeStatus = params.get("trade_status");
-        String orderNo = params.get("out_trade_no");
-
-        if ("TRADE_SUCCESS".equals(tradeStatus)) {
-            payService.processPaymentSuccess(orderNo, params.get("trade_no"));
-            return "success";
-        }
-        return "failure";
+        return "success";
 
     }
 

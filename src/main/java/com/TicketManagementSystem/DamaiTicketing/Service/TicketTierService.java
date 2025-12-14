@@ -1,5 +1,7 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
+import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
+import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.TicketTierMapper;
@@ -27,6 +29,42 @@ public class TicketTierService extends ServiceImpl<TicketTierMapper, TicketTier>
                 .eq(TicketTier::getIsAvailable, 0)
                 .one();
         if (result != null) throw new BusinessException(401, "该档次票已售空");
+    }
+
+    // 添加票档信息
+    public void setTier(TicketTier ticketTier) {
+        TicketTier tier = new TicketTier();
+        ticketTier.setSessionId(ticketTier.getSessionId());
+        ticketTier.setTierName(ticketTier.getTierName());
+        ticketTier.setPrice(ticketTier.getPrice());
+        ticketTier.setTotalQuantity(ticketTier.getTotalQuantity());
+        ticketTier.setAvailableQuantity(ticketTier.getAvailableQuantity());
+
+        boolean result = save(tier);
+        if (!result) throw new RuntimeException("添加票档失败");
+    }
+
+    // 更新票档信息
+    public void updateTier(TicketTier tier) {
+        boolean result = this.lambdaUpdate()
+                .eq(TicketTier::getId, tier.getId())
+                .set(tier.getSessionId() != null, TicketTier::getSessionId, tier.getSessionId())
+                .set(tier.getTierName() != null, TicketTier::getTierName, tier.getTierName())
+                .set(tier.getPrice() != null, TicketTier::getPrice, tier.getPrice())
+                .set(tier.getTotalQuantity() != null, TicketTier::getTotalQuantity, tier.getTotalQuantity())
+                .set(tier.getAvailableQuantity() != null, TicketTier::getAvailableQuantity, tier.getAvailableQuantity())
+                .set(tier.getIsAvailable() != null, TicketTier::getIsAvailable, tier.getIsAvailable())
+                .update();
+
+        if (!result) throw new RuntimeException("更新票档失败");
+    }
+
+    // 删除票档信息
+    public void deleteTier(Long sessionId) {
+        boolean result = this.lambdaUpdate()
+                .eq(TicketTier::getSessionId, sessionId)
+                .remove();
+        if (!result) throw new RuntimeException("删除票档信息失败");
     }
 
 }

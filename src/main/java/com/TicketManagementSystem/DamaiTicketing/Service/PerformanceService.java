@@ -87,4 +87,51 @@ public class PerformanceService extends ServiceImpl<PerformanceMapper, Performan
         performanceSessionService.isSessionOnSale(performanceId);
     }
 
+    // 添加演出信息
+    public void setPerformance(Performance performance) {
+
+        Performance result = new Performance();
+        result.setTitle(performance.getTitle());
+        result.setCategory(performance.getCategory());
+        result.setCity(performance.getCity());
+        result.setCelebrity(performance.getCelebrity());
+        result.setTicketStartTime(performance.getTicketStartTime());
+
+        boolean success = save(result);
+        if (!success) throw new BusinessException(401, "添加演出信息失败");
+
+    }
+
+    // 修改演出信息
+    public void updatePerformance(Performance performance) {
+
+        boolean result = this.lambdaUpdate()
+                .eq(Performance::getId, performance.getId())
+                .set(performance.getTitle() != null, Performance::getTitle, performance.getTitle())
+                .set(performance.getCategory() != null, Performance::getCategory, performance.getCategory())
+                .set(performance.getCity() != null, Performance::getCity, performance.getCity())
+                .set(performance.getCelebrity() != null, Performance::getCelebrity, performance.getCelebrity())
+                .set(performance.getStatus() != null, Performance::getStatus, performance.getStatus())
+                .set(performance.getTicketStartTime() != null, Performance::getTicketStartTime, performance.getTicketStartTime())
+                .update();
+
+        if (!result) throw new BusinessException(401, "修改演出信息失败");
+
+    }
+
+    // 获取演出详情
+    public Performance getPerformanceDetails(Long performanceId) {
+        return this.lambdaQuery()
+                .eq(Performance::getId, performanceId)
+                .one();
+    }
+
+    // 删除演出信息
+    public void deletePerformance(Long performanceId) {
+        boolean result = this.lambdaUpdate()
+                .eq(Performance::getId, performanceId)
+                .remove();
+        if (!result) throw new RuntimeException("删除演出信息失败");
+    }
+
 }

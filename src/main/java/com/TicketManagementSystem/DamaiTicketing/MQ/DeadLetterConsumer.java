@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DeadLetterConsumer {
 
+    // TODO 这里的死信队列暂时是没有做任何处理
     @RabbitListener(queues = "dlx.queue")
     public void handleDeadLetter(String message) {
         // 处理失败消息

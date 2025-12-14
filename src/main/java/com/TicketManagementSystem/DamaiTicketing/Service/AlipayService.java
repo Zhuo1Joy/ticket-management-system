@@ -1,14 +1,15 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
+import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.domain.AlipayTradeCloseModel;
-import com.alipay.api.domain.AlipayTradePrecreateModel;
+import com.alipay.api.domain.AlipayTradePagePayModel;
 import com.alipay.api.domain.AlipayTradeQueryModel;
 import com.alipay.api.request.AlipayTradeCloseRequest;
-import com.alipay.api.request.AlipayTradePrecreateRequest;
+import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.request.AlipayTradeQueryRequest;
 import com.alipay.api.response.AlipayTradeCloseResponse;
-import com.alipay.api.response.AlipayTradePrecreateResponse;
+import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,27 +89,30 @@ public class AlipayService {
     }
 
     // 创建支付宝支付订单
-    public String createAlipayTrade(String TradeNo, BigDecimal amount, String subject) {
+    public AlipayTradePagePayResponse createAlipayTrade(String paymentOrderNo, BigDecimal amount, String subject) {
         try {
-            AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
+            AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
 
             // 设置回调地址
             request.setNotifyUrl(notifyUrl);
 
             // 业务参数
-            AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
-            model.setOutTradeNo(TradeNo);
+            // 感谢AI赞助
+            AlipayTradePagePayModel model = new AlipayTradePagePayModel();
+            model.setOutTradeNo(paymentOrderNo);
             model.setTotalAmount(amount.toString());
             model.setSubject(subject);
             model.setTimeoutExpress("30m");
+            model.setProductCode("FAST_INSTANT_TRADE_PAY");  // 固定值 电脑网站支付
 
             request.setBizModel(model);
 
             // 调用支付宝API
-            AlipayTradePrecreateResponse response = alipayClient.execute(request);
+            AlipayTradePagePayResponse response = alipayClient.pageExecute(request, "GET");
 
             if (response.isSuccess()) {
-                return response.getQrCode();
+                log.info("支付宝订单创建成功，支付宝订单编号：{}", response.getTradeNo());
+                return response;
             } else {
                 log.error("支付宝创建订单失败: {}", response.getMsg());
                 throw new RuntimeException("支付宝创建订单失败");
@@ -120,12 +124,12 @@ public class AlipayService {
     }
 
     // 查询支付宝订单状态
-    public String selectAlipayTradeStatus(String TradeNo) {
+    public String selectAlipayTradeStatus(String paymentOrderNo) {
         try {
             AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
 
             AlipayTradeQueryModel model = new AlipayTradeQueryModel();
-            model.setOutTradeNo(TradeNo);
+            model.setOutTradeNo(paymentOrderNo);
             request.setBizModel(model);
 
             AlipayTradeQueryResponse response = alipayClient.execute(request);
@@ -134,27 +138,27 @@ public class AlipayService {
                 return response.getTradeStatus(); // WAIT_BUYER_PAY, TRADE_SUCCESS, TRADE_CLOSED等
             } else {
                 log.error("查询支付宝订单失败: {}", response.getMsg());
-                return null;
+                throw new BusinessException(404, "相关支付宝订单不存在");
             }
         } catch (Exception e) {
             log.error("查询支付宝订单异常", e);
-            return null;
+            throw new RuntimeException("查询支付宝订单异常");
         }
     }
 
-    // 关闭支付宝订单
-    public boolean closeAlipayTrade(String TradeNo) {
+    // 关闭支付宝订单（未支付状态订单）
+    public boolean closeAlipayTrade(String paymentOrderNo) {
         try {
             AlipayTradeCloseRequest request = new AlipayTradeCloseRequest();
 
             AlipayTradeCloseModel model = new AlipayTradeCloseModel();
-            model.setOutTradeNo(TradeNo);
+            model.setOutTradeNo(paymentOrderNo);
             request.setBizModel(model);
 
             AlipayTradeCloseResponse response = alipayClient.execute(request);
 
             if (response.isSuccess()) {
-                log.info("支付宝订单关闭成功: {}", TradeNo);
+                log.info("交易订单关闭成功: {}", paymentOrderNo);
                 return true;
             } else {
                 log.error("关闭支付宝订单失败: {}", response.getMsg());

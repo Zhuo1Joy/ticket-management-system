@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 @Data
 public class PaymentResponse {
 
-    private String orderNo;
+    private String businessOrderNo;
     private String qrCodeUrl;
     private BigDecimal amount;
 

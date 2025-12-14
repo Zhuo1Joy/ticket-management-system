@@ -35,7 +35,7 @@ public class TicketOrderController {
     }
 
     @SaCheckLogin
-    @DeleteMapping("/api/order/{orderId}/cancel")
+    @GetMapping("/api/order/{orderId}/cancel")
     @Operation(
             summary = "取消订单"
     )

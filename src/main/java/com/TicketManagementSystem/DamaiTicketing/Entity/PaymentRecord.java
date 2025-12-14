@@ -14,7 +14,8 @@ public class PaymentRecord {
 
     @TableId
     private Long id;
-    private String orderNo;
+    private String businessOrderNo;
+    private String paymentOrderNo;
     private String tradeNo;
     private BigDecimal amount;
     private Integer status;

@@ -15,8 +15,6 @@ public class GrabTicketProducer {
     // 发送抢票消息
     public void sendGrabTicketMessage(GrabTicketMessage message) {
         try {
-            // TODO 可以加上消息属性MessageProperties 暂时没用到交换机和路由
-
             // 发送到队列
             rabbitTemplate.convertAndSend("ticket.exchange","ticket.key", message);
 

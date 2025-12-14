@@ -3,7 +3,10 @@ package com.TicketManagementSystem.DamaiTicketing.Service;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketOrder;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
+import com.TicketManagementSystem.DamaiTicketing.MQ.PaymentSuccessMessage;
+import com.TicketManagementSystem.DamaiTicketing.MQ.PaymentSuccessProducer;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.PaymentRecordMapper;
+import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -26,43 +30,105 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
     @Autowired
     AlipayService alipayService;
 
-    // 创建支付二维码
+    @Autowired
+    EmailService emailService;
+
+    @Autowired
+    PaymentSuccessProducer paymentSuccessProducer;
+
+    @Autowired
+    UserService userService;
+
     @Transactional
-    public PaymentRecord createPayment(Long orderId) {
+    public String createPayment(Long orderId) {
 
         TicketOrder ticketOrder = ticketOrderService.getById(orderId);
 
-        String orderNo = ticketOrder.getOrderNo();
+        String businessOrderNo = ticketOrder.getOrderNo();
         Long userId = ticketOrder.getUserId();
         BigDecimal amount = ticketOrder.getTotalAmount();
         String subject = ticketOrder.getOrderName();
 
         // 创建支付记录对象
-        PaymentRecord paymentRecord = paymentRecordService.createPaymentRecord(orderNo, userId, amount, subject);
+        PaymentRecord paymentRecord = paymentRecordService.createPaymentRecord(businessOrderNo, userId, amount, subject);
+        String paymentOrderNo = paymentRecord.getPaymentOrderNo();
 
         try {
             // 创建支付宝订单同时获取二维码
-            String qrCodeUrl = alipayService.createAlipayTrade(orderNo, amount, subject);
+            AlipayTradePagePayResponse response = alipayService.createAlipayTrade(paymentOrderNo, amount, subject);
+            String tradeNo = response.getTradeNo();  // 支付宝交易号
+            String paymentUrl = response.getBody();
 
-            // 更新支付记录中的二维码URL
-            paymentRecord.setQrCodeUrl(qrCodeUrl);
+            // 更新支付记录中的支付宝订单编号
+            paymentRecord.setTradeNo(tradeNo);
             updateById(paymentRecord);
 
-            log.info("支付订单创建完成，订单号：{}，二维码：{}", orderNo, qrCodeUrl);
+            log.info("支付订单创建完成，订单号：{}，支付宝订单号：{}", businessOrderNo, tradeNo);
+
+            return paymentUrl;
 
         } catch (Exception e) {
-            log.error("获取支付宝二维码失败，订单号：{}", orderNo, e);
+            log.error("获取支付宝支付网页失败，订单号：{}", businessOrderNo, e);
         }
 
-        return paymentRecord;
+        return null;
 
     }
 
-    // 处理支付成功
-    public void processPaymentSuccess(String orderNo, String tradeNo) {
-        // TODO 发送邮件通知
-        paymentRecordService.updatePaymentStatus(orderNo, 1, tradeNo);
-        log.info("支付状态已更新:1-支付成功，订单号：{}", orderNo);
+    // 创建支付二维码
+//    @Transactional
+//    public PaymentRecord createPayment(Long orderId) {
+//
+//        TicketOrder ticketOrder = ticketOrderService.getById(orderId);
+//
+//        String businessOrderNo = ticketOrder.getOrderNo();
+//        Long userId = ticketOrder.getUserId();
+//        BigDecimal amount = ticketOrder.getTotalAmount();
+//        String subject = ticketOrder.getOrderName();
+//
+//        // 创建支付记录对象
+//        PaymentRecord paymentRecord = paymentRecordService.createPaymentRecord(businessOrderNo, userId, amount, subject);
+//        String paymentOrderNo = paymentRecord.getPaymentOrderNo();
+//
+//        try {
+//            // 创建支付宝订单同时获取二维码
+//            AlipayTradePagePayResponse response = alipayService.createAlipayTrade(paymentOrderNo, amount, subject);
+//            String tradeNo = response.getTradeNo();  // 支付宝交易号
+//            String qrUrlCode = response.getQrCode();
+//
+//            // 更新支付记录中的二维码URL和支付宝订单编号
+//            paymentRecord.setQrCodeUrl(qrCodeUrl);
+//            paymentRecord.setTradeNo(tradeNo);
+//            updateById(paymentRecord);
+//
+//            log.info("支付订单创建完成，订单号：{}，二维码：{}", orderNo, qrCodeUrl);
+//
+//        } catch (Exception e) {
+//            log.error("获取支付宝二维码失败，订单号：{}", businessOrderNo, e);
+//        }
+//
+//        return paymentRecord;
+//
+//    }
+
+    // 处理支付成功（真正方法）
+    public void processPaymentSuccess(String businessOrderNo, String tradeNo, String email) {
+
+        // 更新支付状态
+        paymentRecordService.updatePaymentStatus(businessOrderNo, 1, tradeNo);
+        // 发送邮件
+        emailService.sendPaymentSuccessEmail(email);
+
+    }
+
+    // 处理支付成功（异步）
+    public void asyncProcessPaymentSuccess(String businessOrderNo, String tradeNo) {
+
+        // 转换为消息类型
+        PaymentSuccessMessage message = convertToMessage(businessOrderNo, tradeNo);
+        // 发送消息
+        paymentSuccessProducer.sentPaymentSuccessMessage(message);
+
     }
 
     // 支付回调
@@ -76,19 +142,23 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
         }
 
         // 2. 获取支付流水号
-        String orderNo = params.get("out_trade_no");
+        String paymentOrderNo = params.get("out_trade_no");
         String tradeNo = params.get("trade_no");
         String tradeStatus = params.get("trade_status");
 
         // 3. 幂等性检查（防止重复回调）
-        PaymentRecord paymentRecord = paymentRecordService.getById(orderNo);
+        PaymentRecord paymentRecord = paymentRecordService.selectByPaymentOrderNo(paymentOrderNo);
+
         if (paymentRecord == null) {
-            log.error("支付记录不存在: {}", orderNo);
+            log.error("支付记录不存在，交易单号: {}", paymentOrderNo);
             return false;
         }
 
+        // 获取订单号
+        String businessOrderNo = paymentRecord.getBusinessOrderNo();
+
         if (paymentRecord.getStatus().equals(1)) {
-            log.info("订单已支付，重复回调: {}", orderNo);
+            log.info("订单已支付，重复回调: {}", businessOrderNo);
             return true;
         }
 
@@ -100,23 +170,20 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
         }
 
         // 5. 处理不同交易状态
+        // TODO 这里交易状态 前者不支持退款 后者支持 但是我暂时没办法分开它们做退款处理
         if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
             // 更新支付记录
-            paymentRecordService.updatePaymentStatus(orderNo, 1, tradeNo);
-
-            // TODO 发送支付成功MQ消息 异步更新订单 发送邮件
-
-            log.info("支付成功处理完成: {}", orderNo);
+            asyncProcessPaymentSuccess(businessOrderNo, tradeNo);
+            log.info("支付成功处理完成: {}", businessOrderNo);
             return true;
-
         } else if ("TRADE_CLOSED".equals(tradeStatus)) {
             // 交易关闭
-            paymentRecordService.closePaymentRecord(orderNo);
-            if (!alipayService.closeAlipayTrade(tradeNo)) {
+            paymentRecordService.closePaymentRecord(businessOrderNo);
+            if (!alipayService.closeAlipayTrade(paymentOrderNo)) {
                 log.error("关闭支付宝订单失败");
                 return false;
             }
-            log.info("支付已关闭: {}", orderNo);
+            log.info("支付已关闭: {}", businessOrderNo);
             return true;
         }
         return false;
@@ -130,6 +197,24 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
             throw new BusinessException(401, "删除订单失败");
         }
         log.info("删除订单成功，订单编号：{}", orderNo);
+    }
+
+    // 转换为消息类型
+    public PaymentSuccessMessage convertToMessage(String businessOrderNo, String tradeNo) {
+
+        String requestId = UUID.randomUUID().toString();
+        String email = userService.getUserInformation().getEmail();
+        String paymentOrderNo = paymentRecordService.selectByBusinessOrderNo(businessOrderNo).getPaymentOrderNo();
+
+        PaymentSuccessMessage message = new PaymentSuccessMessage();
+        message.setEmail(email);
+        message.setRequestId(requestId);
+        message.setBusinessOrderNo(businessOrderNo);
+        message.setPaymentOrderNo(paymentOrderNo);
+        message.setTradeNo(tradeNo);
+
+        return message;
+
     }
 
 }
