@@ -1,6 +1,6 @@
 package com.TicketManagementSystem.DamaiTicketing.Controller;
 
-import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
@@ -14,13 +14,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "演出管理", description = "管理员操作演出相关的所有接口")
+@SaCheckPermission(value = "admin", type = StpAdminUtil.TYPE)
 public class AdminPerformanceController {
 
     @Autowired
     AdminPerformanceService adminPerformanceService;
 
     @GetMapping("/api/admin/performance")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "添加演出信息"
     )
@@ -35,7 +35,6 @@ public class AdminPerformanceController {
 
 
     @PostMapping("/api/admin/performance/update")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "修改演出信息"
     )
@@ -50,7 +49,6 @@ public class AdminPerformanceController {
 
 
     @GetMapping("/api/admin/performance/select")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "分页查询演出信息"
     )
@@ -61,7 +59,6 @@ public class AdminPerformanceController {
     }
 
     @GetMapping("/api/admin/performance/details")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "获取演出详情"
     )
@@ -71,7 +68,6 @@ public class AdminPerformanceController {
 
 
     @DeleteMapping("/api/admin/performance/delete/{performanceId}")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "删除演出信息"
     )
@@ -79,6 +75,5 @@ public class AdminPerformanceController {
         adminPerformanceService.deletePerformance(performanceId);
         return Response.success(200, "删除演出信息成功");
     }
-
 
 }

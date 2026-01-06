@@ -1,13 +1,12 @@
 package com.TicketManagementSystem.DamaiTicketing.MQ;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
 
 @Configuration
 public class MQConfig {
@@ -47,6 +46,16 @@ public class MQConfig {
                 .build();  // 构建队列对象
     }
 
+    // 创建延迟队列
+    @Bean
+    public Queue orderDelayQueue() {
+        return QueueBuilder.durable("order.delay.queue")
+                .withArgument("x-dead-letter-exchange", "dlx.exchange")  // 死信交换机
+                .withArgument("x-dead-letter-routing-key", "dlx.key")    // 死信路由键
+                .withArgument("x-message-ttl", 10000)  // 消息存活时间10秒
+                .build();
+    }
+
     // 创建正常交换机
     @Bean
     public DirectExchange ticketExchange() {
@@ -59,7 +68,19 @@ public class MQConfig {
         return new DirectExchange("dlx.exchange");
     }
 
-    // 绑定正常队列到正常交换机
+    // 创建延迟交换机（必须用CustomExchange）
+    @Bean
+    public CustomExchange delayedExchange() {
+        return new CustomExchange(
+                "order.delayed.exchange",    // 交换机名
+                "x-delayed-message",         // 固定类型
+                true,                       // 持久化
+                false,                      // 不自动删除
+                Map.of("x-delayed-type", "direct")  // 参数
+        );
+    }
+
+    // 绑定抢票队列到正常交换机
     @Bean
     public Binding ticketBinding() {
         return new Binding("ticket.queue",
@@ -87,6 +108,15 @@ public class MQConfig {
                 "dlx.exchange",
                 "dlx.key",
                 null);
+    }
+
+    // 绑定延迟队列到延迟交换机
+    @Bean
+    public Binding delayBinding() {
+        return BindingBuilder.bind(orderDelayQueue())
+                .to(delayedExchange())
+                .with("order.delay.key")
+                .noargs();
     }
 
 }

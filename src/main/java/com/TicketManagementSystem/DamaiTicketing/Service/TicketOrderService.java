@@ -29,6 +29,8 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
 
     @Autowired
     PerformanceMapper performanceMapper;
+    @Autowired
+    private UserService userService;
 
     // 查询订单列表
     public Page<String> getOrderList(String performanceTitle, int pageNum) {
@@ -73,28 +75,33 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
 
     // 取消订单
     // TODO 等以后我再允许你退货 现在不允许 因为我不会写
-    public void cancelOrder(Long id, String cancelReason) {
+    public void cancelOrder(Long id, String orderNo, String cancelReason) {
 
         boolean result = lambdaUpdate()
-                .eq(TicketOrder::getId, id)
+                .eq(id != null, TicketOrder::getId, id)
+                .or()
+                .eq(orderNo != null, TicketOrder::getOrderNo, orderNo)
                 .eq(TicketOrder::getStatus, 0)
-                .ge(TicketOrder::getExpireTime, LocalDateTime.now())
-                .set(TicketOrder::getStatus, 3)
+                .set(TicketOrder::getStatus, 2)
                 .set(TicketOrder::getCancelTime, LocalDateTime.now())
-                .set(TicketOrder::getCancelReason, cancelReason)
+                .set(cancelReason != null, TicketOrder::getCancelReason, cancelReason)
                 .update();
 
         if (!result) throw new BusinessException(401, "无法取消该订单");
 
-        // 票档ID
+        // 票档 ID
         Long tierId = lambdaQuery()
                 .eq(TicketOrder::getId, id)
+                .or()
+                .eq(TicketOrder::getOrderNo, orderNo)
                 .one()
                 .getTierId();
 
         // 购买票数
         int quantity = this.lambdaQuery()
                 .eq(TicketOrder::getId, id)
+                .or()
+                .eq(TicketOrder::getOrderNo, orderNo)
                 .one()
                 .getQuantity();
 
@@ -112,7 +119,7 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
         boolean result = this.lambdaUpdate()
                 .eq(TicketOrder::getUserId, StpUtil.getLoginIdAsLong())
                 .eq(TicketOrder::getId, id)
-                .in(TicketOrder::getStatus, 1, 2, 3)
+                .in(TicketOrder::getStatus, 1, 2)
                 .remove();
 
         if (!result) throw new BusinessException(401, "无法删除该订单");
@@ -127,11 +134,15 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
         int randomNum = ThreadLocalRandom.current().nextInt(1000, 9999);
         // TODO 在这里订单号不能保证百分百唯一 后期或许可以补一个雪花算法？
 
+        // 用户邮箱
+        String userEmail = userService.getUserEmail(userId);
+
         TicketOrder order = new TicketOrder();
         order.setOrderNo("M"+timestamp+randomNum);
         order.setOrderName(userMapper.selectById(userId).getNickname() + "的"
                 + performanceMapper.selectById(grabTicketRequest.getPerformanceId()).getTitle() + "订单");
         order.setUserId(userId);
+        order.setUserEmail(userEmail);
         order.setPerformanceId(grabTicketRequest.getPerformanceId());
         order.setSessionId(grabTicketRequest.getSessionId());
         order.setTierId(grabTicketRequest.getTierId());
@@ -143,6 +154,29 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
 
     }
 
+    // 更新订单状态为成功
+    public boolean updateSuccessOrder(String orderNo) {
+        boolean result = this.lambdaUpdate()
+                .eq(TicketOrder::getOrderNo, orderNo)
+                .set(TicketOrder::getStatus, 1)
+                .set(TicketOrder::getPaymentTime, LocalDateTime.now())
+                .update();
+
+        if (!result) {
+            log.error("无法更新该订单");
+            return false;
+        }
+        return true;
+    }
+
     // TODO 这里还需要一个到时关闭订单 也就是改变订单状态的自动方法
+
+    // 通过订单号获取用户邮箱
+    public String getEmailByOrderNo (String orderNo) {
+        return this.lambdaQuery()
+                .eq(TicketOrder::getOrderNo, orderNo)
+                .one()
+                .getUserEmail();
+    }
 
 }

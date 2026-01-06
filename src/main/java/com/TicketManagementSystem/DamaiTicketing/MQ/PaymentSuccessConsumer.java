@@ -21,17 +21,17 @@ public class PaymentSuccessConsumer {
     @RabbitListener(queues = "payment.queue", ackMode = "MANUAL", concurrency = "5-10")
     public void handlePaymentSuccessMessage(PaymentSuccessMessage message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
 
-        if (message.getBusinessOrderNo() == null || message.getTradeNo() == null) {
-            log.error("❌ 消息字段不全: businessOrderNo={}, tradeNo={}", message.getBusinessOrderNo(), message.getPaymentOrderNo());
+        if (message.getPaymentOrderNo() == null || message.getTradeNo() == null) {
+            log.error("❌ 消息字段不全: paymentOrderNo={}, tradeNo={}", message.getPaymentOrderNo(), message.getTradeNo());
             return;
         }
 
         try {
-            payService.processPaymentSuccess(message.getBusinessOrderNo(), message.getTradeNo(), message.getEmail());
+            payService.processPaymentSuccess(message.getPaymentOrderNo(), message.getTradeNo(), message.getEmail());
             channel.basicAck(deliveryTag, false);
-            log.info("支付消息处理成功，订单号：{}", message.getBusinessOrderNo());
+            log.info("支付消息处理成功，支付订单号：{}", message.getPaymentOrderNo());
         } catch (Exception e) {
-            log.error("支付消息处理失败，订单号：{}", message.getBusinessOrderNo());
+            log.error("支付消息处理失败，支付订单号：{}", message.getPaymentOrderNo());
             throw e;
         }
 

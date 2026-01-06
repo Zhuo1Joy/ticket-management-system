@@ -5,9 +5,11 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
 import com.TicketManagementSystem.DamaiTicketing.Service.TicketOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Log4j2
 @RestController
 @Tag(name = "订单模块", description = "订单相关的所有操作接口")
 public class TicketOrderController {
@@ -35,13 +37,14 @@ public class TicketOrderController {
     }
 
     @SaCheckLogin
-    @GetMapping("/api/order/{orderId}/cancel")
+    @GetMapping("/api/orde/cancel")
     @Operation(
             summary = "取消订单"
     )
-    public Response deleteOrder(@PathVariable Long orderId,
+    public Response deleteOrder(@RequestParam(required = false) Long id,
+                                @RequestParam(required = false) String orderNo,
                                 @RequestParam(required = false) String cancelReason) {
-        ticketOrderService.cancelOrder(orderId, cancelReason);
+        ticketOrderService.cancelOrder(id, orderNo, cancelReason);
         return Response.success(200, "取消订单成功");
     }
 

@@ -20,6 +20,7 @@ public class TicketOrder implements Serializable {
     private String orderNo;
     private String orderName;
     private Long userId;
+    private String userEmail;
     private Long performanceId;
     private Long sessionId;
     private Long tierId;

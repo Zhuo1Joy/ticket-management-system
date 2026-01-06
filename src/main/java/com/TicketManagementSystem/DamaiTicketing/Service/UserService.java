@@ -9,8 +9,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class UserService extends ServiceImpl<UserMapper, User> {
@@ -54,5 +52,12 @@ public class UserService extends ServiceImpl<UserMapper, User> {
     }
 
     // TODO 修改密码（需要额外验证方式）
+
+    // 获取用户邮箱（邮箱设置了非空所以不需要担心～）
+    public String getUserEmail(Long id) {
+        return lambdaQuery().eq(User::getId, id)
+                .one()
+                .getEmail();
+    }
 
 }

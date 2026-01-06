@@ -1,6 +1,6 @@
 package com.TicketManagementSystem.DamaiTicketing.Controller;
 
-import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketOrder;
 import com.TicketManagementSystem.DamaiTicketing.Service.AdminOrderService;
@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "订单管理", description = "订单管理相关的所有操作接口")
+@SaCheckPermission(value = "admin", type = StpAdminUtil.TYPE)
 public class AdminOrderController {
 
     @Autowired
     AdminOrderService adminOrderService;
 
     @GetMapping("/api/admin/order")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "分页查询订单列表"
     )
@@ -29,7 +29,6 @@ public class AdminOrderController {
 
 
     @GetMapping("/api/admin/order/{performanceId}")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "查询订单详情"
     )
@@ -38,7 +37,6 @@ public class AdminOrderController {
     }
 
     @PostMapping("/api/admin/order/update")
-    @SaCheckLogin(type = StpAdminUtil.TYPE)
     @Operation(
             summary = "修改订单信息（手动更新订单状态）"
     )

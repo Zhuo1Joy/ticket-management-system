@@ -16,7 +16,7 @@ public class TicketTier {
 
     @TableId
     private Long id;
-    private Long sessionId; // 关联的场次ID
+    private Long sessionId; // 关联的场次 ID
     private String tierName;
     private BigDecimal price;
     private Integer totalQuantity;

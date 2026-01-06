@@ -1,5 +1,6 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
+import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,10 @@ public class EmailService {
 
     // 注入Spring Boot自动配置的邮件发送器
     @Autowired
-    private JavaMailSender mailSender;
+    JavaMailSender mailSender;
+
+    @Autowired
+    PaymentRecordService paymentRecordService;
 
     // 从配置文件中读取发件人邮箱地址
     @Value("${spring.mail.username}")
@@ -49,7 +53,7 @@ public class EmailService {
                     verificationCode
             );
 
-            helper.setText(content, true); // true表示发送HTML格式邮件
+            helper.setText(content, true); // true 表示发送HTML格式邮件
             mailSender.send(message);
             System.out.println("验证码邮件发送成功至: " + toEmail);
 
@@ -64,24 +68,36 @@ public class EmailService {
         return String.format("%06d", random.nextInt(1000000));
     }
 
-    public void sendPaymentSuccessEmail(String toEmail) {
+    public void sendPaymentSuccessEmail(String paymentOrderNo, String toEmail) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            // 获取订单标题和订单号
+            PaymentRecord result = paymentRecordService.selectByPaymentOrderNo(paymentOrderNo);
+            String subject = result.getSubject();
+            String businessOrderNo = result.getBusinessOrderNo();
+
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);
             helper.setSubject("大麦：抢票成功通知");
-            String content = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
-                    "<h2 style=\"color: #1890ff;\">恭喜您抢票成功！</h2>" +
-                    "<p>您好！</p>" +
-                    "<p>您所购买的订单已成功支付</p>" +
-                    "<div style=\"text-align: center; margin: 20px 0;\">" +
-                    "<span style=\"font-size: 32px; font-weight: bold; color: #1890ff; letter-spacing: 5px;\">%s</span>" +
-                    "</div>" +
-                    "<p>购票详情请登录大麦官网查看</p>" +
-                    "<p>如非本人操作请忽略此邮件。</p>" +
-                    "</div>";
+            String content = String.format("<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+                            "<h2 style=\"color: #1890ff;\">恭喜您抢票成功！</h2>" +
+                            "<p>您好！</p>" +
+                            "<p>您所购买的订单已成功支付</p>" +
+                            "<div style=\"text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;\">" +
+                            "<table width=\"100%%\" style=\"border-collapse: collapse;\">" +
+                            "<tr><td style=\"padding: 10px 0; text-align: left; color: #666;\">订单名称：</td></tr>" +
+                            "<tr><td style=\"padding: 5px 0; font-size: 20px; color: #1890ff; font-weight: bold;\">%s</td></tr>" +
+                            "<tr><td style=\"padding: 10px 0 5px 0; text-align: left; color: #666;\">订单编号：</td></tr>" +
+                            "<tr><td style=\"padding: 5px 0; font-size: 16px; color: #333; font-family: monospace;\">%s</td></tr>" +
+                            "</table>" +
+                            "</div>" +
+                            "<p>购票详情请登录大麦官网查看</p>" +
+                            "<p>如非本人操作请忽略此邮件。</p>" +
+                            "</div>",
+                    subject, businessOrderNo
+            );
 
             helper.setText(content, true);
             mailSender.send(message);

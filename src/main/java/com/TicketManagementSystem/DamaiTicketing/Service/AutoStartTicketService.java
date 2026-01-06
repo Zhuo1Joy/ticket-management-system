@@ -37,7 +37,7 @@ public class AutoStartTicketService {
     private static final String OPENING_LOCK_KEY = "ticket_opening_lock";
 
     // 初始化Redis库存
-    @Scheduled(cron = "0 39 17 * * ?")
+    @Scheduled(cron = "0 8 19 * * ?")
     public void preloadStockBeforeOpening() {
         log.info("🚀 开始预加载Redis库存");
 
@@ -108,7 +108,7 @@ public class AutoStartTicketService {
 
     // 执行开票操作
     @Transactional
-    @Scheduled(cron = "0 40 17 * * ?")
+    @Scheduled(cron = "0 10 19 * * ?")
     public void openTicket() {
 
         String lockKey = OPENING_LOCK_KEY;

@@ -9,6 +9,7 @@ import com.TicketManagementSystem.DamaiTicketing.Service.TicketGrabbingService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +29,8 @@ public class PerformanceController {
     @Operation(
             summary = "未登录默认返回北京地区演出"
     )
-    public Response getPerformance(@RequestParam(required = false, defaultValue = "1") int pageNum) {
-        return Response.success(200, "默认地区：北京", performanceService.getPerformance(pageNum));
+    public Response getPerformance(@RequestParam(required = false, defaultValue = "1") int pageNum, HttpServletRequest request) {
+        return Response.success(200, "默认地区：北京", performanceService.getPerformance(pageNum, request));
     }
 
     // 根据演出名/明星名查询

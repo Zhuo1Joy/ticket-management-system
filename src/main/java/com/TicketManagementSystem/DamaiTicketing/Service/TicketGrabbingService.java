@@ -67,11 +67,11 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
         if (isOnSale == null || isOnSale != 1)
             throw new BusinessException(404, "暂未开票 请耐心等待");
 
-        // Redis预扣库存
+        // Redis 预扣库存
         String stockKey = STOCK_KEY_PREFIX + tierId;
         boolean redisSuccess = false;
         try {
-            // Redis原子扣减
+            // Redis 原子扣减
             Long remainingStock = integerRedisTemplate.opsForValue().decrement(stockKey, quantity);
             if (remainingStock == null || remainingStock < 0) {
                 // 库存不足->回滚Redis
@@ -116,7 +116,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
     private boolean validateTicketTier(TicketTier ticketTier, Integer quantity) {
         // 检查库存
         int availableTickets = ticketTier.getAvailableQuantity();
-        if (availableTickets < quantity) {
+        if (availableTickets <= 0) {
             log.warn("库存不足，需要 {}，可用 {}", quantity, availableTickets);
             return false;
         }

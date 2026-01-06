@@ -24,8 +24,6 @@ public class PaymentRecord {
     private String subject;
     private LocalDateTime payTime;
     private LocalDateTime expireTime;
-    private Integer notifyStatus = 0;
-    private Integer notifyCount = 0;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 

@@ -1,10 +1,7 @@
 package com.TicketManagementSystem.DamaiTicketing.Controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
-import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
-import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentResponse;
 import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
-import com.TicketManagementSystem.DamaiTicketing.Service.AlipayService;
 import com.TicketManagementSystem.DamaiTicketing.Service.PaymentRecordService;
 import com.TicketManagementSystem.DamaiTicketing.Service.PayService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,9 +22,6 @@ public class PayController {
 
     @Autowired
     PaymentRecordService paymentRecordService;
-
-    @Autowired
-    AlipayService alipayService;
 
 
     @SaCheckLogin
@@ -63,16 +57,6 @@ public class PayController {
     )
     public Response getPaymentRecordDetails(@PathVariable String businessOrderNo) {
         return Response.success(200, "返回订单状态成功", paymentRecordService.selectByBusinessOrderNo(businessOrderNo));
-    }
-
-
-    @SaCheckLogin
-    @GetMapping("/api/payment/alipay/status/{paymentOrderNo}")
-    @Operation(
-            summary = "查询支付宝订单状态"
-    )
-    public Response getAlipayStatus(@PathVariable String paymentOrderNo) {
-        return Response.success(200, "查询支付宝订单状态成功", alipayService.selectAlipayTradeStatus(paymentOrderNo));
     }
 
 

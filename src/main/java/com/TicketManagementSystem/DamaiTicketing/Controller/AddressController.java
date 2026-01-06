@@ -20,7 +20,7 @@ public class AddressController {
     @SaCheckLogin
     @GetMapping("/api/address")
     @Operation(
-            summary = "获取收获地址"      // 接口的简短描述
+            summary = "获取收获地址"
     )
     public Response getAddress() {
         return Response.success(200, "查询成功", addressService.getAddress());
@@ -30,7 +30,7 @@ public class AddressController {
     @SaCheckLogin
     @PutMapping("/api/address/update")
     @Operation(
-            summary = "修改收获地址"      // 接口的简短描述
+            summary = "修改收获地址"
     )
     public Response updateAddress(@RequestBody Address address) {
         addressService.updateAddress(address);
@@ -41,7 +41,7 @@ public class AddressController {
     @SaCheckLogin
     @DeleteMapping("/api/address/delete/{id}")
     @Operation(
-            summary = "删除收获地址"      // 接口的简短描述
+            summary = "删除收获地址"
     )
     public Response deleteAddress(@PathVariable Long id) {
         addressService.deleteAddress(id);

@@ -1,10 +1,9 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
-import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
+import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.domain.AlipayTradeCloseModel;
 import com.alipay.api.domain.AlipayTradePagePayModel;
-import com.alipay.api.domain.AlipayTradeQueryModel;
 import com.alipay.api.request.AlipayTradeCloseRequest;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.request.AlipayTradeQueryRequest;
@@ -48,7 +47,7 @@ public class AlipayService {
         byte[] keyBytes = Base64.getDecoder().decode(publicKey);
         // 创建X509格式的密钥规范
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
-        // 使用RSA算法工厂生成PublicKey对象
+        // 使用 RSA算法工厂 生成PublicKey对象
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         return keyFactory.generatePublic(keySpec);
 
@@ -123,29 +122,6 @@ public class AlipayService {
         }
     }
 
-    // 查询支付宝订单状态
-    public String selectAlipayTradeStatus(String paymentOrderNo) {
-        try {
-            AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
-
-            AlipayTradeQueryModel model = new AlipayTradeQueryModel();
-            model.setOutTradeNo(paymentOrderNo);
-            request.setBizModel(model);
-
-            AlipayTradeQueryResponse response = alipayClient.execute(request);
-
-            if (response.isSuccess()) {
-                return response.getTradeStatus(); // WAIT_BUYER_PAY, TRADE_SUCCESS, TRADE_CLOSED等
-            } else {
-                log.error("查询支付宝订单失败: {}", response.getMsg());
-                throw new BusinessException(404, "相关支付宝订单不存在");
-            }
-        } catch (Exception e) {
-            log.error("查询支付宝订单异常", e);
-            throw new RuntimeException("查询支付宝订单异常");
-        }
-    }
-
     // 关闭支付宝订单（未支付状态订单）
     public boolean closeAlipayTrade(String paymentOrderNo) {
         try {
@@ -168,6 +144,54 @@ public class AlipayService {
             log.error("关闭支付宝订单异常", e);
             return false;
         }
+    }
+
+    // 查询支付宝订单状态
+    public AlipayTradeQueryResponse queryAlipayOrderStatus(String outTradeNo) {
+        try {
+            AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
+
+            // 构建请求参数
+            Map<String, Object> bizContent = new HashMap<>();
+            bizContent.put("out_trade_no", outTradeNo);
+
+            // 将 Map 转换为JSON字符串
+            String bizContentJson = convertToJson(bizContent);
+            request.setBizContent(bizContentJson);
+
+            log.debug("查询支付宝订单，商户订单号: {}", outTradeNo);
+
+            // 执行查询
+            return alipayClient.execute(request);
+
+        } catch (AlipayApiException e) {
+            log.error("支付宝查询接口异常，订单: {}，错误码: {}，错误信息: {}",
+                    outTradeNo, e.getErrCode(), e.getErrMsg(), e);
+            return null;
+        } catch (Exception e) {
+            log.error("查询支付宝订单未知异常，订单: {}", outTradeNo, e);
+            return null;
+        }
+    }
+
+    // Map转JSON（简化实现）
+    // 再次感谢AI
+    public String convertToJson(Map<String, Object> map) {
+        StringBuilder json = new StringBuilder("{");
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            json.append("\"").append(entry.getKey()).append("\":");
+            if (entry.getValue() instanceof String) {
+                json.append("\"").append(entry.getValue()).append("\"");
+            } else {
+                json.append(entry.getValue());
+            }
+            json.append(",");
+        }
+        if (json.charAt(json.length() - 1) == ',') {
+            json.deleteCharAt(json.length() - 1);
+        }
+        json.append("}");
+        return json.toString();
     }
 
 }

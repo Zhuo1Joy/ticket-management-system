@@ -12,7 +12,7 @@ public class PaymentSuccessMessage {
     private String paymentOrderNo;
     private String tradeNo;
 
-    // 用户邮箱 用于支付成功后通知
+    // 用于发送邮箱通知
     private String email;
 
 }
