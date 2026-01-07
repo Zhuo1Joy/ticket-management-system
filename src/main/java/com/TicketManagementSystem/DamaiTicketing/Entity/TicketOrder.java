@@ -1,6 +1,10 @@
 package com.TicketManagementSystem.DamaiTicketing.Entity;
 
+import com.TicketManagementSystem.DamaiTicketing.Enums.OrderStatus;
 import com.baomidou.mybatisplus.annotation.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Data;
 
 import java.io.Serial;
@@ -26,7 +30,11 @@ public class TicketOrder implements Serializable {
     private Long tierId;
     private Integer quantity;
     private BigDecimal totalAmount;
-    private Integer status;
+
+    @Enumerated(EnumType.STRING) // 指定存储为字符串
+    @Column(name = "status", length = 20, nullable = false) // 指定长度和非空
+    private OrderStatus status;
+
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private LocalDateTime expireTime;

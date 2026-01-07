@@ -4,20 +4,25 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AdminPerformanceService {
 
-    @Autowired
+    final
     PerformanceService performanceService;
 
-    @Autowired
+    final
     PerformanceSessionService performanceSessionService;
 
-    @Autowired
+    final
     TicketTierService ticketTierService;
+
+    public AdminPerformanceService(PerformanceService performanceService, PerformanceSessionService performanceSessionService, TicketTierService ticketTierService) {
+        this.performanceService = performanceService;
+        this.performanceSessionService = performanceSessionService;
+        this.ticketTierService = ticketTierService;
+    }
 
     // 添加演出信息
     public void setPerformance(Performance performance) {
@@ -64,7 +69,7 @@ public class AdminPerformanceService {
         performanceService.deletePerformance(performanceId);
         performanceSessionService.deleteSession(performanceId);
         // 好恶心。
-        ticketTierService.deleteTier(performanceSessionService.getSession(performanceId).get(0).getPerformanceId());
+        ticketTierService.deleteTier(performanceSessionService.getSession(performanceId).getFirst().getPerformanceId());
     }
 
 }

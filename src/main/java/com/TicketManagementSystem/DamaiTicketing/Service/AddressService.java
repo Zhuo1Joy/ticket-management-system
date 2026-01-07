@@ -17,7 +17,7 @@ public class AddressService extends ServiceImpl<AddressMapper, Address> {
     // 获取收获地址
     public List<Address> getAddress() {
 
-        // 比Manager类更加优雅的简略写法
+        // 比 Manager类更加优雅的简略写法
         List<Address> result = this.lambdaQuery()
                 .eq(Address::getUserId, StpUtil.getLoginIdAsLong())
                 .list();

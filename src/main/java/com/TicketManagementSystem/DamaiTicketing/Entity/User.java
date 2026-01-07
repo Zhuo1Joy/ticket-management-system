@@ -1,7 +1,11 @@
 package com.TicketManagementSystem.DamaiTicketing.Entity;
 
+import com.TicketManagementSystem.DamaiTicketing.Enums.Gender;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -22,7 +26,11 @@ public class User {
     private String email;
     private String phone;
     private String nickname;
-    private String gender;
+
+    @Enumerated(EnumType.STRING) // 指定存储为字符串
+    @Column(name = "status", length = 20, nullable = false) // 指定长度和非空
+    private Gender gender;
+
     private Date birthday;
     private int status;
     private LocalDateTime createTime;

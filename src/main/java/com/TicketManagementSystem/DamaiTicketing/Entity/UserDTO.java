@@ -1,5 +1,9 @@
 package com.TicketManagementSystem.DamaiTicketing.Entity;
 
+import com.TicketManagementSystem.DamaiTicketing.Enums.Gender;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,7 +17,11 @@ public class UserDTO {
     private String email;
     private String phone;
     private String nickname;
-    private String gender;
+
+    @Enumerated(EnumType.STRING) // 指定存储为字符串
+    @Column(name = "status", length = 20, nullable = false) // 指定长度和非空
+    private Gender gender;
+
     private Date birthday;
     private LocalDateTime createTime;
     private LocalDateTime lastLoginTime;

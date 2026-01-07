@@ -1,30 +1,27 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
-import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import java.util.Random;
 
 @Slf4j
 @Service
 public class EmailService {
 
     // 注入Spring Boot自动配置的邮件发送器
-    @Autowired
+    final
     JavaMailSender mailSender;
-
-    @Autowired
-    PaymentRecordService paymentRecordService;
 
     // 从配置文件中读取发件人邮箱地址
     @Value("${spring.mail.username}")
     private String fromEmail;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     public void sendVerificationCode(String toEmail, String verificationCode) {
         try {
@@ -62,21 +59,10 @@ public class EmailService {
         }
     }
 
-    // 生成六位验证码
-    public String generateVerificationCode() {
-        Random random = new Random();
-        return String.format("%06d", random.nextInt(1000000));
-    }
-
-    public void sendPaymentSuccessEmail(String paymentOrderNo, String toEmail) {
+    public void sendPaymentSuccessEmail(String subject, String businessOrderNo, String toEmail) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            // 获取订单标题和订单号
-            PaymentRecord result = paymentRecordService.selectByPaymentOrderNo(paymentOrderNo);
-            String subject = result.getSubject();
-            String businessOrderNo = result.getBusinessOrderNo();
 
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);

@@ -16,10 +16,14 @@ public class PerformLocationService {
 
     // 还是感谢 AI
 
-    @Autowired
     GeoIPService geoIPService;
-    @Autowired
     HttpRequestUtils httpRequestUtils;
+
+    @Autowired
+    public PerformLocationService(GeoIPService geoIPService, HttpRequestUtils httpRequestUtils) {
+        this.geoIPService = geoIPService;
+        this.httpRequestUtils = httpRequestUtils;
+    }
 
     // 根据 IP返回演出
     public String returnPerformanceByIP(HttpServletRequest request) {

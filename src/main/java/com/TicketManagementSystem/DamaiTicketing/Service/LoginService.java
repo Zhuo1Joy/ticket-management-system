@@ -7,7 +7,6 @@ import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.UserMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.micrometer.common.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
@@ -15,8 +14,12 @@ import java.util.Random;
 @Service
 public class LoginService extends ServiceImpl<UserMapper, User> {
 
-    @Autowired
+    final
     VerificationCodeService verificationCodeService;
+
+    public LoginService(VerificationCodeService verificationCodeService) {
+        this.verificationCodeService = verificationCodeService;
+    }
 
     // 登录模块->生成Token
     // 听从学姐建议将这些七七八八的代码挪到服务层来了 但是看起来似乎并没有更加优雅（思考）

@@ -11,7 +11,6 @@ import com.TicketManagementSystem.DamaiTicketing.MQ.GrabTicketProducer;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.TicketTierMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,22 +24,31 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketTier> {
 
-    @Autowired
+    final
     PerformanceSessionService performanceSessionService;
-    @Autowired
+    final
     TicketTierService ticketTierService;
-    @Autowired
+    final
     TicketOrderService ticketOrderService;
-    @Autowired
+    final
     GrabTicketProducer grabTicketProducer;
-    @Autowired
+    final
     RedisTemplate<String, Integer> integerRedisTemplate;
-    @Autowired
+    final
     RedisTemplate<String, String> stringRedisTemplate;
 
     private static final String STOCK_KEY_PREFIX = "ticket_stock:";
     private static final String SALE_SWITCH_KEY_PREFIX = "sale_switch:";
     private static final String GRAB_RESULT = "grab_result:";
+
+    public TicketGrabbingService(PerformanceSessionService performanceSessionService, TicketTierService ticketTierService, TicketOrderService ticketOrderService, GrabTicketProducer grabTicketProducer, RedisTemplate<String, Integer> integerRedisTemplate, RedisTemplate<String, String> stringRedisTemplate) {
+        this.performanceSessionService = performanceSessionService;
+        this.ticketTierService = ticketTierService;
+        this.ticketOrderService = ticketOrderService;
+        this.grabTicketProducer = grabTicketProducer;
+        this.integerRedisTemplate = integerRedisTemplate;
+        this.stringRedisTemplate = stringRedisTemplate;
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public boolean grabTicket(GrabTicketRequest grabTicketRequest, Long userId) {
@@ -155,7 +163,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
     // 计算订单金额
     private BigDecimal calculateAmount(TicketTier ticketTier, Integer quantity) {
 
-        BigDecimal amount = ticketTier.getPrice(); // 差点忘了当时设置的Price就是BigDecimal类型的hh
+        BigDecimal amount = ticketTier.getPrice(); // 差点忘了当时设置的 Price就是BigDecimal类型的hh
         return amount.multiply(new BigDecimal(quantity));
 
     }
@@ -165,7 +173,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
 
         GrabTicketMessage grabTicketMessage = convertToMessage(grabTicketRequest);
         String resultKey = GRAB_RESULT + grabTicketMessage.getRequestId();
-        // 消息处理情况存入Redis
+        // 消息处理情况存入 Redis
         stringRedisTemplate.opsForValue().set(resultKey, "Unprocessed", 10, TimeUnit.SECONDS);
 
         log.info("开始异步抢票: userId={}, ticketId={}", grabTicketMessage.getUserId(), grabTicketMessage.getTicketId());
@@ -173,7 +181,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
         try {
             // 开始抢票
             grabTicketProducer.sendGrabTicketMessage(grabTicketMessage);
-            stringRedisTemplate.opsForValue().set(resultKey, "Processing", 10, TimeUnit.SECONDS); // 更新Redis
+            stringRedisTemplate.opsForValue().set(resultKey, "Processing", 10, TimeUnit.SECONDS); // 更新 Redis
 
             log.info("发送抢票请求: requestId={}, userId={}, ticketId={}",
                     grabTicketMessage.getRequestId(), grabTicketMessage.getUserId(), grabTicketMessage.getTicketId());
@@ -187,7 +195,7 @@ public class TicketGrabbingService extends ServiceImpl<TicketTierMapper, TicketT
 
     public GrabTicketMessage convertToMessage(GrabTicketRequest grabTicketRequest) {
 
-        // 生成唯一的请求ID
+        // 生成唯一的请求 ID
         String requestId = UUID.randomUUID().toString();
         Long userId = StpUtil.getLoginIdAsLong();
 

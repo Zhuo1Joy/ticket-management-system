@@ -11,7 +11,6 @@ import com.alipay.api.response.AlipayTradeCloseResponse;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
 public class AlipayService {
     // PS:以下内容多来自于AI 我只删改了部分 做了一下简化和归类
 
-    @Autowired
+    final
     AlipayClient alipayClient;
 
     @Value("${alipay.notify-url}")
@@ -39,6 +38,10 @@ public class AlipayService {
 
     @Value("${alipay.alipay-public-key}")
     private String alipayPublicKey;
+
+    public AlipayService(AlipayClient alipayClient) {
+        this.alipayClient = alipayClient;
+    }
 
     // 解密支付宝公钥
     private PublicKey getPublicKey(String publicKey) throws Exception {
@@ -106,7 +109,7 @@ public class AlipayService {
 
             request.setBizModel(model);
 
-            // 调用支付宝API
+            // 调用支付宝 API
             AlipayTradePagePayResponse response = alipayClient.pageExecute(request, "GET");
 
             if (response.isSuccess()) {

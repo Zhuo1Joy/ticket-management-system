@@ -4,7 +4,6 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,24 +18,31 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class AutoStartTicketService {
 
-    @Autowired
+    final
     PerformanceService performanceService;
 
-    @Autowired
+    final
     PerformanceSessionService performanceSessionService;
 
-    @Autowired
+    final
     TicketTierService ticketTierService;
 
-    @Autowired
+    final
     RedisTemplate<String, Integer> redisTemplate;
 
-    // Redis键常量
+    // Redis 键常量
     private static final String STOCK_KEY_PREFIX = "ticket_stock:";
     private static final String SALE_SWITCH_KEY_PREFIX = "sale_switch:";
     private static final String OPENING_LOCK_KEY = "ticket_opening_lock";
 
-    // 初始化Redis库存
+    public AutoStartTicketService(PerformanceService performanceService, PerformanceSessionService performanceSessionService, TicketTierService ticketTierService, RedisTemplate<String, Integer> redisTemplate) {
+        this.performanceService = performanceService;
+        this.performanceSessionService = performanceSessionService;
+        this.ticketTierService = ticketTierService;
+        this.redisTemplate = redisTemplate;
+    }
+
+    // 初始化 Redis库存
     @Scheduled(cron = "0 8 19 * * ?")
     public void preloadStockBeforeOpening() {
         log.info("🚀 开始预加载Redis库存");
@@ -62,7 +68,7 @@ public class AutoStartTicketService {
                 return;
             }
 
-            // 获取场次ID
+            // 获取场次 ID
             List<Long> sessionIds = sessions.stream()
                     .map(PerformanceSession::getId)
                     .toList();
@@ -138,7 +144,7 @@ public class AutoStartTicketService {
                         .set(PerformanceSession::getIsOnSale, 1)     // 设置为已开票
                         .update();
 
-                // 打开Redis销售开关
+                // 打开 Redis销售开关
                 openSaleSwitch(performanceIds);
 
                 log.info("✅ 开票成功：演出ID={}", performanceIds);
@@ -153,7 +159,7 @@ public class AutoStartTicketService {
 
     }
 
-    // 打开Redis销售开关
+    // 打开 Redis销售开关
     private void openSaleSwitch(List<Long> performanceIds) {
         // 获取所有相关场次
         List<PerformanceSession> sessions = performanceSessionService.lambdaQuery()

@@ -151,6 +151,12 @@
 			<artifactId>geoip2</artifactId>
 			<version>5.0.2</version>
 		</dependency>
+
+		<!-- Spring Boot Starter Data JPA (包含@Enumerated等JPA注解) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

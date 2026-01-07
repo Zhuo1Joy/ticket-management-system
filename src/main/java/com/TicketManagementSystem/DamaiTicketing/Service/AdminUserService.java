@@ -6,7 +6,6 @@ import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.UserMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,8 +13,12 @@ import java.util.List;
 @Service
 public class AdminUserService extends ServiceImpl<UserMapper, User> {
 
-    @Autowired
+    final
     UserService userService;
+
+    public AdminUserService(UserService userService) {
+        this.userService = userService;
+    }
 
     // 分页查询用户信息
     // 这里查询可以支持根据所有信息查询 根据需求随时可改

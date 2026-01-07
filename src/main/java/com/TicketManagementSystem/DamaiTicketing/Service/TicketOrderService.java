@@ -4,13 +4,14 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.TicketManagementSystem.DamaiTicketing.Entity.GrabTicketRequest;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketOrder;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
+import com.TicketManagementSystem.DamaiTicketing.Enums.OrderStatus;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.PerformanceMapper;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.TicketOrderMapper;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.UserMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,19 +19,28 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Slf4j
 @Service
 public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrder> {
 
-    @Autowired
+    final
     TicketTierService ticketTierService;
 
-    @Autowired
+    final
     UserMapper userMapper;
 
-    @Autowired
+    final
     PerformanceMapper performanceMapper;
-    @Autowired
-    private UserService userService;
+
+    final
+    UserService userService;
+
+    public TicketOrderService(TicketTierService ticketTierService, UserMapper userMapper, PerformanceMapper performanceMapper, UserService userService) {
+        this.ticketTierService = ticketTierService;
+        this.userMapper = userMapper;
+        this.performanceMapper = performanceMapper;
+        this.userService = userService;
+    }
 
     // 查询订单列表
     public Page<String> getOrderList(String performanceTitle, int pageNum) {
@@ -81,8 +91,8 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
                 .eq(id != null, TicketOrder::getId, id)
                 .or()
                 .eq(orderNo != null, TicketOrder::getOrderNo, orderNo)
-                .eq(TicketOrder::getStatus, 0)
-                .set(TicketOrder::getStatus, 2)
+                .eq(TicketOrder::getStatus, OrderStatus.fromCode(0))
+                .set(TicketOrder::getStatus, OrderStatus.fromCode(2))
                 .set(TicketOrder::getCancelTime, LocalDateTime.now())
                 .set(cancelReason != null, TicketOrder::getCancelReason, cancelReason)
                 .update();
@@ -119,7 +129,7 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
         boolean result = this.lambdaUpdate()
                 .eq(TicketOrder::getUserId, StpUtil.getLoginIdAsLong())
                 .eq(TicketOrder::getId, id)
-                .in(TicketOrder::getStatus, 1, 2)
+                .in(TicketOrder::getStatus, OrderStatus.fromCode(1), OrderStatus.fromCode(2))
                 .remove();
 
         if (!result) throw new BusinessException(401, "无法删除该订单");
@@ -155,21 +165,18 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
     }
 
     // 更新订单状态为成功
-    public boolean updateSuccessOrder(String orderNo) {
+    public void updateSuccessOrder(String orderNo) {
         boolean result = this.lambdaUpdate()
                 .eq(TicketOrder::getOrderNo, orderNo)
-                .set(TicketOrder::getStatus, 1)
+                .set(TicketOrder::getStatus, OrderStatus.fromCode(1))
                 .set(TicketOrder::getPaymentTime, LocalDateTime.now())
                 .update();
 
         if (!result) {
             log.error("无法更新该订单");
-            return false;
         }
-        return true;
+        log.info("更新订单状态成功：{}", orderNo);
     }
-
-    // TODO 这里还需要一个到时关闭订单 也就是改变订单状态的自动方法
 
     // 通过订单号获取用户邮箱
     public String getEmailByOrderNo (String orderNo) {

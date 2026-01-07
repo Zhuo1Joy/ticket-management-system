@@ -1,11 +1,11 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
+import com.TicketManagementSystem.DamaiTicketing.Enums.RecordStatus;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.Mapper.PaymentRecordMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +19,15 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> {
 
-    @Autowired
+    final
     TicketOrderService ticketOrderService;
 
-    @Value("${payment.timeout-minutes:30}")
+    @Value("${payment.timeout-minutes:30}0")
     public Integer timeoutMinutes;
+
+    public PaymentRecordService(TicketOrderService ticketOrderService) {
+        this.ticketOrderService = ticketOrderService;
+    }
 
     // 创建支付记录
     // 如果存在支付记录我可以理解为已经到支付宝创建过支付订单了吧
@@ -51,7 +55,7 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
         paymentRecord.setPaymentOrderNo("PAY_" + timestamp + randomNum);
         paymentRecord.setAmount(amount);
         paymentRecord.setUserId(userId);
-        paymentRecord.setStatus(0);
+        paymentRecord.setStatus(RecordStatus.PENDING);
         paymentRecord.setSubject(subject);
         paymentRecord.setExpireTime(LocalDateTime.now().plusMinutes(timeoutMinutes));
 
@@ -80,31 +84,21 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
                 .one();
     }
 
-    // 更新支付状态
-    // TODO 需要一个枚举类来明确状态
+    // 更新支付状态为成功
     @Transactional
-    public void updatePaymentStatus(String paymentOrderNo, Integer status, String tradeNo) {
+    public void updatePaymentStatus(PaymentRecord paymentRecord, String tradeNo) {
 
-        PaymentRecord paymentRecord = selectByPaymentOrderNo(paymentOrderNo);
-
-        paymentRecord.setStatus(status);
+        paymentRecord.setStatus(RecordStatus.PAID);
         if (tradeNo != null) {
             paymentRecord.setTradeNo(tradeNo);
-        }
+        }else log.error("支付宝交易编号:tradeNo 为空");
 
         // 支付时间
-        if (status.equals(1)) {
-            paymentRecord.setPayTime(LocalDateTime.now());
-        }
+        paymentRecord.setPayTime(LocalDateTime.now());
 
-        String businessOrderNo = paymentRecord.getBusinessOrderNo();
-
-        // 更新业务订单支付状态为成功
-        boolean result1 = ticketOrderService.updateSuccessOrder(businessOrderNo);
-
-        boolean result2 = saveOrUpdate(paymentRecord);
-        log.info("更新支付记录状态，业务订单号：{}, 支付订单号：{}，状态：{}，结果：{}",
-                businessOrderNo, paymentOrderNo, status, result1 && result2 ? "成功" : "失败");
+        boolean result = saveOrUpdate(paymentRecord);
+        log.info("更新支付记录状态，支付订单号：{}，状态：{}，结果：{}",
+                paymentRecord.getPaymentOrderNo(), paymentRecord.getStatus(), result ? "成功" : "失败");
 
     }
 
@@ -113,7 +107,7 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
 
         boolean result = this.lambdaUpdate()
                 .eq(PaymentRecord::getPaymentOrderNo, paymentOrderNo)
-                .set(PaymentRecord::getStatus, 2)
+                .set(PaymentRecord::getStatus, RecordStatus.CLOSED)
                 .update();
         if (!result) {
             log.error("关闭订单失败");
@@ -127,7 +121,7 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
     public List<PaymentRecord> selectOrdersNeedCompensation() {
         // 查询条件:状态为待支付（0）
         return this.lambdaQuery()
-                .eq(PaymentRecord::getStatus, 0)
+                .eq(PaymentRecord::getStatus, RecordStatus.CLOSED)
                 .gt(PaymentRecord::getExpireTime, LocalDateTime.now())
                 .list();
     }

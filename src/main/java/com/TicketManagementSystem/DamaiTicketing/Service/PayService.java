@@ -2,6 +2,7 @@ package com.TicketManagementSystem.DamaiTicketing.Service;
 
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketOrder;
+import com.TicketManagementSystem.DamaiTicketing.Enums.RecordStatus;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
 import com.TicketManagementSystem.DamaiTicketing.MQ.DelayMessageProducer;
 import com.TicketManagementSystem.DamaiTicketing.MQ.PaymentSuccessMessage;
@@ -10,7 +11,6 @@ import com.TicketManagementSystem.DamaiTicketing.Mapper.PaymentRecordMapper;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,23 +23,32 @@ import java.util.UUID;
 @Service
 public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> {
 
-    @Autowired
+    final
     TicketOrderService ticketOrderService;
 
-    @Autowired
+    final
     PaymentRecordService paymentRecordService;
 
-    @Autowired
+    final
     AlipayService alipayService;
 
-    @Autowired
+    final
     EmailService emailService;
 
-    @Autowired
+    final
     PaymentSuccessProducer paymentSuccessProducer;
 
-    @Autowired
+    final
     DelayMessageProducer delayMessageProducer;
+
+    public PayService(TicketOrderService ticketOrderService, PaymentRecordService paymentRecordService, AlipayService alipayService, EmailService emailService, PaymentSuccessProducer paymentSuccessProducer, DelayMessageProducer delayMessageProducer) {
+        this.ticketOrderService = ticketOrderService;
+        this.paymentRecordService = paymentRecordService;
+        this.alipayService = alipayService;
+        this.emailService = emailService;
+        this.paymentSuccessProducer = paymentSuccessProducer;
+        this.delayMessageProducer = delayMessageProducer;
+    }
 
     @Transactional
     public String createPayment(Long orderId) {
@@ -83,10 +92,18 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
     // 处理支付成功（真正方法）
     public void processPaymentSuccess(String paymentOrderNo, String tradeNo, String email) {
 
-        // 更新支付状态（支付记录+业务订单）
-        paymentRecordService.updatePaymentStatus(paymentOrderNo, 1, tradeNo);
+        PaymentRecord paymentRecord = paymentRecordService.selectByPaymentOrderNo(paymentOrderNo);
+        String subject = paymentRecord.getSubject();
+        String businessOrderNo = paymentRecord.getBusinessOrderNo();
+
+        // 更新支付记录状态
+        paymentRecordService.updatePaymentStatus(paymentRecord, tradeNo);
+
+        // 更新业务订单支付状态为成功
+        ticketOrderService.updateSuccessOrder(businessOrderNo);
+
         // 发送邮件
-        emailService.sendPaymentSuccessEmail(paymentOrderNo, email);
+        emailService.sendPaymentSuccessEmail(subject, businessOrderNo, email);
 
     }
 
@@ -126,7 +143,7 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
         // 获取订单号
         String businessOrderNo = paymentRecord.getBusinessOrderNo();
 
-        if (paymentRecord.getStatus().equals(1)) {
+        if (paymentRecord.getStatus().equals(RecordStatus.PAID)) {
             log.info("订单已支付，重复回调: {}", businessOrderNo);
             return true;
         }

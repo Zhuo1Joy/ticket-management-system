@@ -1,9 +1,9 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
+import com.TicketManagementSystem.DamaiTicketing.Enums.RecordStatus;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -16,17 +16,24 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class PayCompensateService {
 
-    @Autowired
+    final
     RedisTemplate<String, String> redisTemplate;
 
-    @Autowired
+    final
     PaymentRecordService paymentRecordService;
 
-    @Autowired
+    final
     AlipayService alipayService;
 
-    @Autowired
+    final
     PayService payService;
+
+    public PayCompensateService(RedisTemplate<String, String> redisTemplate, PaymentRecordService paymentRecordService, AlipayService alipayService, PayService payService) {
+        this.redisTemplate = redisTemplate;
+        this.paymentRecordService = paymentRecordService;
+        this.alipayService = alipayService;
+        this.payService = payService;
+    }
 
     // 每五分钟检测一次
     @Scheduled(cron = "0 */15 * * * *")
@@ -90,7 +97,7 @@ public class PayCompensateService {
         String paymentOrderNo = order.getPaymentOrderNo();
 
         // 检查订单是否需要补偿
-        if (!order.getStatus().equals(0)) {
+        if (!order.getStatus().equals(RecordStatus.PENDING)) {
             log.debug("订单 {} 不需要补偿，跳过", paymentOrderNo);
             return false;
         }

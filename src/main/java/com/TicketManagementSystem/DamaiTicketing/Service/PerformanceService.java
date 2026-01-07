@@ -9,7 +9,6 @@ import com.TicketManagementSystem.DamaiTicketing.Mapper.PerformanceMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,12 +16,18 @@ import java.util.List;
 @Service
 public class PerformanceService extends ServiceImpl<PerformanceMapper, Performance> {
 
-    @Autowired
+    final
     PerformanceSessionService performanceSessionService;
-    @Autowired
+    final
     TicketTierService ticketTierService;
-    @Autowired
+    final
     PerformLocationService performLocationService;
+
+    public PerformanceService(PerformanceSessionService performanceSessionService, TicketTierService ticketTierService, PerformLocationService performLocationService) {
+        this.performanceSessionService = performanceSessionService;
+        this.ticketTierService = ticketTierService;
+        this.performLocationService = performLocationService;
+    }
 
     // 未登录默认返回北京地区演出
     public Page<Performance> getPerformance(int pageNum, HttpServletRequest request) {

@@ -1,24 +1,29 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class VerificationCodeService {
 
-    @Autowired
+    final
     RedisTemplate<String, String> redisTemplate;
-    @Autowired
+    final
     EmailService emailService;
 
     private static final String CODE_PREFIX = "verification_code:";
     private static final String RATE_LIMIT_PREFIX = "rate_limit:";
-    private static final long CODE_EXPIRE_MINUTES = 5; // 5分钟过期
+    private static final long CODE_EXPIRE_MINUTES = 10; // 5分钟过期
     private static final long RATE_LIMIT_SECONDS = 60; // 60秒内只能发送一次
+
+    public VerificationCodeService(RedisTemplate<String, String> redisTemplate, EmailService emailService) {
+        this.redisTemplate = redisTemplate;
+        this.emailService = emailService;
+    }
 
     // 发送邮箱验证码
     public void sendEmailCode(String email) {
@@ -33,7 +38,7 @@ public class VerificationCodeService {
         }
 
         // 生成验证码
-        String code = emailService.generateVerificationCode();
+        String code = generateVerificationCode();
 
         // 存储到Redis（5分钟过期）
         String key = CODE_PREFIX + email;
@@ -46,6 +51,14 @@ public class VerificationCodeService {
         // 发送邮件
         emailService.sendVerificationCode(email, code);
     }
+
+
+    // 生成六位验证码
+    public String generateVerificationCode() {
+        Random random = new Random();
+        return String.format("%06d", random.nextInt(1000000));
+    }
+
 
     // 验证邮箱验证码
     public boolean verifyEmailCode(String email, String code) {
