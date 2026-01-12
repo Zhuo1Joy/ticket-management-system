@@ -4,7 +4,6 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
 import com.TicketManagementSystem.DamaiTicketing.Service.AdminLoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,8 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "管理端登录", description = "管理员登录相关的所有操作接口")
 public class AdminLoginController {
 
-    @Autowired
+    final
     AdminLoginService adminLoginService;
+
+    public AdminLoginController(AdminLoginService adminLoginService) {
+        this.adminLoginService = adminLoginService;
+    }
 
     @PutMapping("/api/login/admin")
     @Operation(

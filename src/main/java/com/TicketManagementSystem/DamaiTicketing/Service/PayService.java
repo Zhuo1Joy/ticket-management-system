@@ -53,7 +53,7 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
     @Transactional
     public String createPayment(Long orderId) {
 
-        TicketOrder ticketOrder = ticketOrderService.getById(orderId);
+        TicketOrder ticketOrder = ticketOrderService.selectByOrderId(orderId);
 
         if (LocalDateTime.now().isAfter(ticketOrder.getExpireTime())) throw new BusinessException(403, "该订单已超时，请求支付失败");
 
@@ -178,11 +178,16 @@ public class PayService extends ServiceImpl<PaymentRecordMapper, PaymentRecord> 
     // 关闭支付宝支付订单/取消订单
     public void cancelPayment(String paymentOrderNo) {
         // 修改支付记录中的订单状态 & 删除支付宝订单
-        if (!paymentRecordService.closePaymentRecord(paymentOrderNo) || !alipayService.closeAlipayTrade(paymentOrderNo)) {
+        if (!paymentRecordService.closePaymentRecordByHand(paymentOrderNo) || !alipayService.closeAlipayTrade(paymentOrderNo)) {
             log.error("删除订单失败");
-            return;
+            throw new BusinessException(401, "关闭支付宝支付订单/取消订单失败");
         }
-        log.info("删除支付订单成功，订单编号：{}", paymentOrderNo);
+        log.info("关闭支付订单成功，订单编号：{}", paymentOrderNo);
+
+        // 修改业务订单状态
+        String businessOrderNo = paymentRecordService.selectByPaymentOrderNo(paymentOrderNo).getBusinessOrderNo();
+        ticketOrderService.cancelOrder(null, businessOrderNo, null);
+        log.info("业务订单已关闭：{}", businessOrderNo);
     }
 
     // 转换为消息类型

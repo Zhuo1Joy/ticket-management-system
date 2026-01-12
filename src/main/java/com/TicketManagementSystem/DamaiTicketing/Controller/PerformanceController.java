@@ -11,18 +11,22 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "演出模块", description = "演出相关的所有操作接口")
 public class PerformanceController {
 
-    @Autowired
+    final
     PerformanceService performanceService;
 
-    @Autowired
+    final
     TicketGrabbingService ticketGrabbingService;
+
+    public PerformanceController(PerformanceService performanceService, TicketGrabbingService ticketGrabbingService) {
+        this.performanceService = performanceService;
+        this.ticketGrabbingService = ticketGrabbingService;
+    }
 
     // 未登录默认返回北京地区演出
     @GetMapping("/api/performance/home")

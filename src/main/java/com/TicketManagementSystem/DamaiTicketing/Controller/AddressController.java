@@ -6,15 +6,18 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
 import com.TicketManagementSystem.DamaiTicketing.Service.AddressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "用户地址", description = "用户操作地址相关的所有操作接口")
 public class AddressController {
 
-    @Autowired
+    final
     AddressService addressService;
+
+    public AddressController(AddressService addressService) {
+        this.addressService = addressService;
+    }
 
     // 获取收获地址
     @SaCheckLogin

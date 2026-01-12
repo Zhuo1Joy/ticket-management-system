@@ -1,5 +1,6 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PaymentRecord;
 import com.TicketManagementSystem.DamaiTicketing.Enums.RecordStatus;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
@@ -70,6 +71,7 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
     // 根据订单号查询支付记录
     public PaymentRecord selectByBusinessOrderNo(String businessOrderNo) {
         PaymentRecord result = this.lambdaQuery()
+                .eq(PaymentRecord::getUserId, StpUtil.getLoginIdAsLong())
                 .eq(PaymentRecord::getBusinessOrderNo, businessOrderNo)
                 .one();
 
@@ -80,6 +82,7 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
     // 根据交易号查询支付记录
     public PaymentRecord selectByPaymentOrderNo(String paymentOrderNo) {
         return this.lambdaQuery()
+                .eq(PaymentRecord::getUserId, StpUtil.getLoginIdAsLong())
                 .eq(PaymentRecord::getPaymentOrderNo, paymentOrderNo)
                 .one();
     }
@@ -102,10 +105,11 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
 
     }
 
-    // 关闭支付订单
-    public boolean closePaymentRecord(String paymentOrderNo) {
+    // 关闭支付订单（手动关闭版）
+    public boolean closePaymentRecordByHand(String paymentOrderNo) {
 
         boolean result = this.lambdaUpdate()
+                .eq(PaymentRecord::getUserId, StpUtil.getLoginIdAsLong())
                 .eq(PaymentRecord::getPaymentOrderNo, paymentOrderNo)
                 .set(PaymentRecord::getStatus, RecordStatus.CLOSED)
                 .update();
@@ -114,6 +118,19 @@ public class PaymentRecordService extends ServiceImpl<PaymentRecordMapper, Payme
             return false;
         }
         return true;
+
+    }
+
+    // 关闭支付订单（自动调用版）
+    public void closePaymentRecord(String paymentOrderNo) {
+
+        boolean result = this.lambdaUpdate()
+                .eq(PaymentRecord::getPaymentOrderNo, paymentOrderNo)
+                .set(PaymentRecord::getStatus, RecordStatus.CLOSED)
+                .update();
+        if (!result) {
+            log.error("自动关闭订单失败");
+        }
 
     }
 

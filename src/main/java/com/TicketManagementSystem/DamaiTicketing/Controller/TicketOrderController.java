@@ -6,7 +6,6 @@ import com.TicketManagementSystem.DamaiTicketing.Service.TicketOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @Log4j2
@@ -14,8 +13,12 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "订单模块", description = "订单相关的所有操作接口")
 public class TicketOrderController {
 
-    @Autowired
+    final
     TicketOrderService ticketOrderService;
+
+    public TicketOrderController(TicketOrderService ticketOrderService) {
+        this.ticketOrderService = ticketOrderService;
+    }
 
     @SaCheckLogin
     @GetMapping("/api/order")

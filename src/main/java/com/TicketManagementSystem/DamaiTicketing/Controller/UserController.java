@@ -6,15 +6,18 @@ import com.TicketManagementSystem.DamaiTicketing.Entity.UserDTO;
 import com.TicketManagementSystem.DamaiTicketing.Service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "用户信息", description = "用户个人信息相关的所有操作接口")
 public class UserController {
 
-    @Autowired
+    final
     UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     // 获取当前用户信息
     @GetMapping("/api/user")

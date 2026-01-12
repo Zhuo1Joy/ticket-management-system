@@ -186,4 +186,14 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
                 .getUserEmail();
     }
 
+    // 根据订单 ID查询订单
+    public TicketOrder selectByOrderId(Long orderId) {
+        TicketOrder result = this.lambdaQuery()
+                .eq(TicketOrder::getUserId, StpUtil.getLoginIdAsLong())
+                .eq(TicketOrder::getId, orderId)
+                .one();
+        if (result == null) throw new BusinessException(404, "您查询的订单不存在");
+        return result;
+    }
+
 }

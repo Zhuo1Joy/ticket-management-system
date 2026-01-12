@@ -7,7 +7,6 @@ import com.TicketManagementSystem.DamaiTicketing.Service.PayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,12 +16,16 @@ import java.util.Map;
 @Tag(name = "支付模块", description = "支付相关的操作接口（支付宝沙箱环境）")
 public class PayController {
 
-    @Autowired
+    final
     PayService payService;
 
-    @Autowired
+    final
     PaymentRecordService paymentRecordService;
 
+    public PayController(PayService payService, PaymentRecordService paymentRecordService) {
+        this.payService = payService;
+        this.paymentRecordService = paymentRecordService;
+    }
 
     @SaCheckLogin
     @GetMapping("/api/payment/alipay/create/{orderId}")
@@ -61,12 +64,12 @@ public class PayController {
 
 
     @SaCheckLogin
-    @DeleteMapping("/api/payment/cancel/{orderNo}")
+    @DeleteMapping("/api/payment/cancel/{paymentOrderNo}")
     @Operation(
             summary = "取消支付 即取消支付宝支付订单"
     )
-    public Response cancelPayment(@PathVariable String orderNo) {
-        payService.cancelPayment(orderNo);
+    public Response cancelPayment(@PathVariable String paymentOrderNo) {
+        payService.cancelPayment(paymentOrderNo);
         return Response.success(200, "取消支付成功");
     }
 
