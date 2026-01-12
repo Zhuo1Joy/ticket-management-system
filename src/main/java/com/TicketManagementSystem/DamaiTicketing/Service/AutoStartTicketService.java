@@ -155,7 +155,7 @@ public class AutoStartTicketService {
                 // 释放锁
                 redisTemplate.delete(lockKey);
             }
-        } else  log.debug("⏳ 其他服务正在处理开票：演出ID={}", performanceIds);
+        } else log.debug("⏳ 其他服务正在处理开票：演出ID={}", performanceIds);
 
     }
 

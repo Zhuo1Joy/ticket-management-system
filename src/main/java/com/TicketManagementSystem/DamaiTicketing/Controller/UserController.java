@@ -7,10 +7,7 @@ import com.TicketManagementSystem.DamaiTicketing.Service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "用户信息", description = "用户个人信息相关的所有操作接口")
@@ -30,7 +27,7 @@ public class UserController {
     }
 
     // 修改个人信息
-    @PostMapping("/api/user/update")
+    @PutMapping("/api/user/update")
     @SaCheckLogin
     @Operation(
             summary = "修改个人信息"
@@ -40,5 +37,15 @@ public class UserController {
         return Response.success(200, "修改个人信息成功", userService.getUserInformation());
     }
 
+    // 修改密码
+    @PutMapping("/api/user/password")
+    @SaCheckLogin
+    @Operation(
+            summary = "修改密码"
+    )
+    public Response updateUserPassword(@RequestParam String code, @RequestParam String password) {
+        userService.updateUserPassword(code, password);
+        return Response.success(200, "修改密码成功，请重新登录");
+    }
 
 }
