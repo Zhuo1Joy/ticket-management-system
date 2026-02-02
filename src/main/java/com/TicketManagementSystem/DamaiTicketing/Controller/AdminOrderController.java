@@ -26,7 +26,7 @@ public class AdminOrderController {
             summary = "分页查询订单列表"
     )
     public Response getOrderList(@RequestParam(required = false) String performanceTitle,
-                                 @RequestParam(required = false) int pageNum) {
+                                 @RequestParam(required = false, defaultValue = "1") int pageNum) {
         return Response.success(200, "查询订单列表成功", adminOrderService.getOrderList(performanceTitle, pageNum));
     }
 

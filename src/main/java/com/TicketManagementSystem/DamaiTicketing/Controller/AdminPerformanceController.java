@@ -1,10 +1,7 @@
 package com.TicketManagementSystem.DamaiTicketing.Controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
-import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
-import com.TicketManagementSystem.DamaiTicketing.Entity.Response;
-import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
+import com.TicketManagementSystem.DamaiTicketing.Entity.*;
 import com.TicketManagementSystem.DamaiTicketing.Service.AdminPerformanceService;
 import com.TicketManagementSystem.DamaiTicketing.Util.StpAdminUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,16 +20,14 @@ public class AdminPerformanceController {
         this.adminPerformanceService = adminPerformanceService;
     }
 
-    @GetMapping("/api/admin/performance")
+    @PostMapping("/api/admin/performance")
     @Operation(
             summary = "添加演出信息"
     )
-    public Response setPerformance(@RequestBody Performance performance,
-                                   @RequestBody PerformanceSession performanceSession,
-                                   @RequestBody TicketTier ticketTier) {
-        adminPerformanceService.setPerformance(performance);
-        adminPerformanceService.setSession(performanceSession);
-        adminPerformanceService.setTier(ticketTier);
+    public Response setPerformance(@RequestBody PerformanceRequest performanceRequest) {
+        adminPerformanceService.setPerformance(performanceRequest.getPerformance());
+        adminPerformanceService.setSession(performanceRequest.getPerformanceSession());
+        adminPerformanceService.setTier(performanceRequest.getTicketTier());
         return Response.success(200, "添加演出信息成功");
     }
 
@@ -41,12 +36,10 @@ public class AdminPerformanceController {
     @Operation(
             summary = "修改演出信息"
     )
-    public Response updatePerformance(@RequestBody(required = false) Performance performance,
-                                      @RequestBody(required = false) PerformanceSession performanceSession,
-                                      @RequestBody(required = false) TicketTier ticketTier) {
-        adminPerformanceService.updatePerformance(performance);
-        adminPerformanceService.updateSession(performanceSession);
-        adminPerformanceService.updateTier(ticketTier);
+    public Response updatePerformance(@RequestBody(required = false) PerformanceRequest performanceRequest) {
+        if (performanceRequest.getPerformance() != null) adminPerformanceService.updatePerformance(performanceRequest.getPerformance());
+        if (performanceRequest.getPerformanceSession() != null) adminPerformanceService.updateSession(performanceRequest.getPerformanceSession());
+        if (performanceRequest.getTicketTier() != null) adminPerformanceService.updateTier(performanceRequest.getTicketTier());
         return Response.success(200, "修改演出信息成功");
     }
 
@@ -57,7 +50,7 @@ public class AdminPerformanceController {
     )
     public Response selectPerformanceByParams(@RequestParam(required = false) String city,
                                               @RequestParam(required = false) String category,
-                                              @RequestParam(required = false) int pageNum) {
+                                              @RequestParam(required = false, defaultValue = "1") int pageNum) {
         return Response.success(200, "查询演出信息成功", adminPerformanceService.selectPerformanceByParams(city, category, pageNum));
     }
 

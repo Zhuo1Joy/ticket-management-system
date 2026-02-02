@@ -70,7 +70,7 @@ public class TicketOrderService extends ServiceImpl<TicketOrderMapper, TicketOrd
     }
 
     // 获取订单详情
-    // TODO 这里的订单 在付款前和后看到的应该是两个状态 等等 好像不用？
+    // 这里的订单 在付款前和后看到的应该是两个状态 等等 好像不用后端处理
     public TicketOrder getOrderDetails(Long id) {
 
         TicketOrder result = this.lambdaQuery()

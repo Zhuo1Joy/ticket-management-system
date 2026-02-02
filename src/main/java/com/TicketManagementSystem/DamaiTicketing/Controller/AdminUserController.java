@@ -33,7 +33,7 @@ public class AdminUserController {
             summary = "查询用户详情"
     )
     public Response getUserDetails(@PathVariable Long userId) {
-        return Response.success(200, "查询用户信息成功", adminUserService.getUserDetails(userId));
+        return Response.success(200, "查询用户详情成功", adminUserService.getUserDetails(userId));
     }
 
     @PostMapping("/api/admin/user/password")
@@ -42,7 +42,7 @@ public class AdminUserController {
     )
     public Response updateUserInformation(@RequestParam Long userId) {
         adminUserService.updateUserInformation(userId);
-        return Response.success(200, "修改用户信息（重置用户密码）");
+        return Response.success(200, "修改用户信息（重置用户密码）成功");
     }
 
     @PostMapping("/api/admin/user/status")

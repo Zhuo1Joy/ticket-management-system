@@ -66,10 +66,11 @@ public class AdminPerformanceService {
 
     // 删除演出信息（连着场次和票档一起删除）
     public void deletePerformance(Long performanceId) {
+        // 好恶心。
+        ticketTierService.deleteTier(performanceSessionService.getSession(performanceId));
+        // 要先删票档朋友们 不然没法根据场次删票档
         performanceService.deletePerformance(performanceId);
         performanceSessionService.deleteSession(performanceId);
-        // 好恶心。
-        ticketTierService.deleteTier(performanceSessionService.getSession(performanceId).getFirst().getPerformanceId());
     }
 
 }

@@ -20,11 +20,11 @@ public class Performance {
     private Long id;
     private String title;
     private String city;
-    private String category;
 
     @Enumerated(EnumType.STRING) // 指定存储为字符串
     @Column(name = "status", length = 20, nullable = false) // 指定长度和非空
-    private PerformanceCategory celebrity;
+    private PerformanceCategory category;
+    private String celebrity;
 
     private Integer status;
     private LocalDateTime ticketStartTime;
