@@ -1,6 +1,4 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
-
-import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
 import com.TicketManagementSystem.DamaiTicketing.Exception.BusinessException;
@@ -34,11 +32,11 @@ public class TicketTierService extends ServiceImpl<TicketTierMapper, TicketTier>
     // 添加票档信息
     public void setTier(TicketTier ticketTier) {
         TicketTier tier = new TicketTier();
-        ticketTier.setSessionId(ticketTier.getSessionId());
-        ticketTier.setTierName(ticketTier.getTierName());
-        ticketTier.setPrice(ticketTier.getPrice());
-        ticketTier.setTotalQuantity(ticketTier.getTotalQuantity());
-        ticketTier.setAvailableQuantity(ticketTier.getAvailableQuantity());
+        tier.setSessionId(ticketTier.getSessionId());
+        tier.setTierName(ticketTier.getTierName());
+        tier.setPrice(ticketTier.getPrice());
+        tier.setTotalQuantity(ticketTier.getTotalQuantity());
+        tier.setAvailableQuantity(ticketTier.getAvailableQuantity());
 
         boolean result = save(tier);
         if (!result) throw new RuntimeException("添加票档失败");
@@ -60,9 +58,14 @@ public class TicketTierService extends ServiceImpl<TicketTierMapper, TicketTier>
     }
 
     // 删除票档信息
-    public void deleteTier(Long sessionId) {
+    public void deleteTier(List<PerformanceSession> sessions) {
+
+        List<Long> sessionIds = sessions.stream()
+                .map(PerformanceSession::getId)
+                .toList();
+
         boolean result = this.lambdaUpdate()
-                .eq(TicketTier::getSessionId, sessionId)
+                .in(TicketTier::getSessionId, sessionIds)
                 .remove();
         if (!result) throw new RuntimeException("删除票档信息失败");
     }
