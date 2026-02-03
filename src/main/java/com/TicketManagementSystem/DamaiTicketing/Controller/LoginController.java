@@ -24,7 +24,7 @@ public class LoginController {
 
     // 登录模块
     // 发送Token
-    @PutMapping("/api/auth/login")
+    @PostMapping("/api/auth/login")
     @Operation(
             summary = "用户登录 返回Token"      // 接口的简短描述
     )

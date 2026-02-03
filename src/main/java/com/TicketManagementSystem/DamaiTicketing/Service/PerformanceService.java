@@ -90,12 +90,12 @@ public class PerformanceService extends ServiceImpl<PerformanceMapper, Performan
 
     // 获取演出票务信息
     public List<TicketTier> getTicketTier(Long performanceSessionId) {
-        return ticketTierService.getTicketTier(performanceSessionId);
+        return ticketTierService.getTicketTierBySession(performanceSessionId);
     }
 
     // 用户获取是否有库存
-    public void isTicketAvailable(Long performanceSessionId){
-        ticketTierService.isTicketAvailable(performanceSessionId);
+    public void isTicketAvailable(Long tierId){
+        ticketTierService.isTicketAvailable(tierId);
     }
 
     // 是否已经开票
@@ -133,13 +133,6 @@ public class PerformanceService extends ServiceImpl<PerformanceMapper, Performan
 
         if (!result) throw new BusinessException(401, "修改演出信息失败");
 
-    }
-
-    // 获取演出详情
-    public Performance getPerformanceDetails(Long performanceId) {
-        return this.lambdaQuery()
-                .eq(Performance::getId, performanceId)
-                .one();
     }
 
     // 删除演出信息

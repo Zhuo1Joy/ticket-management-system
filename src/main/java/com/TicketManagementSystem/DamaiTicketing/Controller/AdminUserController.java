@@ -36,7 +36,7 @@ public class AdminUserController {
         return Response.success(200, "查询用户详情成功", adminUserService.getUserDetails(userId));
     }
 
-    @PostMapping("/api/admin/user/password")
+    @PutMapping("/api/admin/user/password")
     @Operation(
             summary = "修改用户信息（重置用户密码）"
     )
@@ -45,7 +45,7 @@ public class AdminUserController {
         return Response.success(200, "修改用户信息（重置用户密码）成功");
     }
 
-    @PostMapping("/api/admin/user/status")
+    @PutMapping("/api/admin/user/status")
     @Operation(
             summary = "启用/禁用用户"
     )

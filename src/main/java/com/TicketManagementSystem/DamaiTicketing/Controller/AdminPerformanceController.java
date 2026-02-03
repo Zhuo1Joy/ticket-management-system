@@ -32,7 +32,7 @@ public class AdminPerformanceController {
     }
 
 
-    @PostMapping("/api/admin/performance/update")
+    @PutMapping("/api/admin/performance/update")
     @Operation(
             summary = "修改演出信息"
     )
@@ -59,7 +59,7 @@ public class AdminPerformanceController {
             summary = "获取演出详情"
     )
     public Response getPerformanceDetails(Long performanceId) {
-        return Response.success(200, "获取演出详情成功", adminPerformanceService.getPerformanceDetails(performanceId));
+        return Response.success(200, "获取该演出详情成功", adminPerformanceService.getPerformanceDetails(performanceId));
     }
 
 

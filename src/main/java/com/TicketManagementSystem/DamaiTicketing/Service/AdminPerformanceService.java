@@ -1,10 +1,15 @@
 package com.TicketManagementSystem.DamaiTicketing.Service;
 
 import com.TicketManagementSystem.DamaiTicketing.Entity.Performance;
+import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceDetail;
 import com.TicketManagementSystem.DamaiTicketing.Entity.PerformanceSession;
 import com.TicketManagementSystem.DamaiTicketing.Entity.TicketTier;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.LinkedList;
+import java.util.List;
 
 @Service
 public class AdminPerformanceService {
@@ -45,9 +50,7 @@ public class AdminPerformanceService {
     }
 
     // 添加演出票档信息
-    public void setTier(TicketTier ticketTier) {
-        ticketTierService.setTier(ticketTier);
-    }
+    public void setTier(TicketTier ticketTier) { ticketTierService.setTier(ticketTier);}
 
     // 更新票档信息
     public void updateTier(TicketTier tier) {
@@ -59,18 +62,26 @@ public class AdminPerformanceService {
         return performanceService.selectPerformanceByParams(city, category, pageNum);
     }
 
-    // 获取演出详情
-    public Performance getPerformanceDetails(Long performanceId) {
-        return performanceService.getPerformanceDetails(performanceId);
+    public List<PerformanceDetail> getPerformanceDetails(Long performanceId) {
+        List<PerformanceDetail> result = new LinkedList<>();
+        // 分别列出场次和票档
+        List<PerformanceSession> sessions = performanceSessionService.getSession(performanceId);
+        for (PerformanceSession session : sessions) {
+            PerformanceDetail detail = new PerformanceDetail();
+            detail.setPerformanceSession(session);
+            detail.setTicketTiers(ticketTierService.getTicketTierBySession(session.getId()));
+            // 存入
+            result.add(detail);
+        }
+        return result;
     }
 
     // 删除演出信息（连着场次和票档一起删除）
+    @Transactional
     public void deletePerformance(Long performanceId) {
-        // 好恶心。
-        ticketTierService.deleteTier(performanceSessionService.getSession(performanceId));
-        // 要先删票档朋友们 不然没法根据场次删票档
         performanceService.deletePerformance(performanceId);
         performanceSessionService.deleteSession(performanceId);
+        ticketTierService.deleteTier(performanceId);
     }
 
 }

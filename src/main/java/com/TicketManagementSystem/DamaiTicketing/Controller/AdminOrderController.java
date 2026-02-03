@@ -39,7 +39,7 @@ public class AdminOrderController {
         return Response.success(200, "查询订单详情成功", adminOrderService.getOrderDetails(performanceId));
     }
 
-    @PostMapping("/api/admin/order/update")
+    @PutMapping("/api/admin/order/update")
     @Operation(
             summary = "修改订单信息（手动更新订单状态）"
     )

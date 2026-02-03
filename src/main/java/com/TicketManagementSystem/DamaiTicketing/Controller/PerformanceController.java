@@ -82,12 +82,12 @@ public class PerformanceController {
 
     // 用户获取是否有库存
     @SaCheckLogin
-    @GetMapping("/api/ticket/{performanceId}")
+    @GetMapping("/api/ticket/{tierId}")
     @Operation(
             summary = "用户获取是否有库存"
     )
-    public Response isTicketAvailable(@PathVariable Long performanceId) {
-        performanceService.isTicketAvailable(performanceId);
+    public Response isTicketAvailable(@PathVariable Long tierId) {
+        performanceService.isTicketAvailable(tierId);
         return Response.success(200, "还有票！快抢");
     }
 
